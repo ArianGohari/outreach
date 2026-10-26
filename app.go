@@ -308,7 +308,7 @@ func (a *App) Start(id string, r outreach.Request, token string) (err error) {
 		return e
 	}
 	if answer != "Start sending" {
-		return diagnostics.Cancelled("Sending cancelled")
+		return diagnostics.Cancelled("Sending cancelled. This action did not start outreach.")
 	}
 	return a.jobs.Start(job, r, token)
 }

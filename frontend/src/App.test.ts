@@ -117,7 +117,7 @@ async function renderEditor() {
   });
   if (state.plan) {
     const edit = await screen.findByRole('button', {
-      name: 'Edit & resume job',
+      name: 'Edit job',
     });
     await waitFor(() =>
       expect((edit as HTMLButtonElement).disabled).toBe(false),

@@ -11,7 +11,6 @@
     type JobView,
     batchHoursToMinutes,
     canStart,
-    statusLabel,
     type Problem,
     type Config,
     type Report,
@@ -154,14 +153,6 @@
   let starting = $state(false);
   let revision = 0;
   const message = $derived(plan?.messages[index]);
-  const sent = $derived(
-    deliveryState.deliveries.filter((d) => d.status === 'sent').length,
-  );
-  const finished = $derived(
-    deliveryState.deliveries.filter(
-      (d) => !['pending', 'sending'].includes(d.status),
-    ).length,
-  );
   const locked = $derived(busy || deliveryState.running);
   const accountBusy = $derived(
     runningAccounts.some(
@@ -377,8 +368,6 @@
             ? deliveryState.plan
             : null;
         contactsChecked = !!report?.contacts.length;
-        notice =
-          'Check the connection and send a new test email before resuming.';
       }
       testTo = config.from || config.username;
       if (config.remember && config.provider !== 'google')
@@ -424,7 +413,11 @@
       <JobProgress
         state={deliveryState}
         {busy}
-        onEdit={() => (view = 'edit')}
+        onEdit={() => {
+          view = 'edit';
+          notice =
+            'Check the connection and send a new test email before resuming.';
+        }}
         onStop={() =>
           action(async () => {
             await backend().Stop();
@@ -813,49 +806,16 @@
         >
           {deliveryState.error}
         </p>{/if}
-      {#if deliveryState.deliveries.length}<div class="progress">
-          <div class="progress-heading">
-            <span class="number"
-              >{finished} / {deliveryState.deliveries.length}</span
-            ><span class="small"
-              >{deliveryState.running ? 'Sending' : 'Paused / Finished'} ·
-              <span class="ok">{sent} accepted</span></span
-            >
-          </div>
-          <progress
-            value={finished}
-            max={deliveryState.deliveries.length}
-            aria-label="Sending progress"
-          ></progress>
-          {#if deliveryState.running && deliveryState.nextAt}<p class="hint">
-              Next send no earlier than {new Date(
-                deliveryState.nextAt,
-              ).toLocaleTimeString('en-US')}.
-            </p>{/if}
-          <div class="log">
-            {#each deliveryState.deliveries
-              .filter((d) => d.status !== 'pending')
-              .slice(-100)
-              .reverse() as d}<div class="log-row">
-                <span class="muted"
-                  >{d.updated
-                    ? new Date(d.updated).toLocaleTimeString('en-US')
-                    : ''}</span
-                ><span>{d.to}</span><span
-                  title={d.detail}
-                  class:ok={d.status === 'sent'}
-                  class:error={['failed', 'uncertain', 'blocked'].includes(
-                    d.status,
-                  )}>{statusLabel[d.status]}</span
-                >
-                {#if d.detail && ['failed', 'uncertain', 'blocked'].includes(d.status)}
-                  <details class="delivery-error">
-                    <summary>Error details</summary>
-                    <p>{d.detail}</p>
-                  </details>
-                {/if}
-              </div>{/each}
-          </div>
+      {#if deliveryState.plan}<div class="actions">
+          <button
+            class="plain"
+            onclick={async () => {
+              view = 'progress';
+              notice = '';
+              await tick();
+              revealStatus(progressPanel);
+            }}>View recipients & progress</button
+          >
         </div>{/if}
     </section>
   </div>
@@ -869,12 +829,5 @@
   .job-name,
   .account-choice {
     margin-bottom: 24px;
-  }
-  .delivery-error {
-    grid-column: 1 / -1;
-    overflow-wrap: anywhere;
-  }
-  .delivery-error p {
-    white-space: pre-wrap;
   }
 </style>

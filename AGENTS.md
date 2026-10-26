@@ -44,6 +44,7 @@ Der vorhandene Schutz ist lokal und gilt für identischen Nachrichteninhalt. Ge�
 - Dashboard und Job-Tabs. Neue Jobs über das Plus in der Tab-Leiste, kein zusätzlicher "Neuer Job"-Button.
 - Einen eingerichteten Tab schließen beendet oder löscht den Job nicht. Unberührte leere Entwürfe nicht im Dashboard anzeigen; beim Schließen bzw. Start bereinigen. Keine Benutzereingaben dabei verwerfen.
 - Native Bestätigungen über `showMessageDialog` führen: Wails 2 ignoriert unter Windows eigene Button-Texte und liefert `Yes`/`No`. Nur ein explizites `Yes` darf bestätigen; Standard immer `No`. Dialogfehler und unbekannte Antworten dürfen keine Aktion freigeben.
+- Versandübersicht: alle Empfänger des aktuellen Versandplans zugänglich machen, auch ohne Sendeversuch; keine stille Begrenzung auf letzte Übertragungen. Annahme durch den Provider ist keine bestätigte Zustellung. Ausstehend, laufend, angenommen, fehlgeschlagen, unklar und Duplikatsperren getrennt zeigen; Fehlergründe direkt beim Empfänger.
 - Nach bestätigtem Versandstart den Fortschritt sichtbar machen; Abbruchmeldungen ebenfalls in den sichtbaren Bereich bringen. Reine Fortschrittsupdates dürfen den Scroll-/Tastaturfokus nicht stehlen.
 - Löschen im Dashboard braucht eine kurze Bestätigung. Fehler beim Speichern oder Löschen sichtbar melden; keinen Erfolg vortäuschen.
 - Neue Jobs: 30 Sekunden zwischen Mails, Batchgröße 50, Batchpause 24 Stunden. Bestehende Einstellungen erhalten. UI in Stunden, gespeicherte Werte weiterhin in Minuten; Plan-IDs dürfen durch Einheitenwechsel nicht verändert werden.

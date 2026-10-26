@@ -41,6 +41,7 @@ For the real Keychain / Windows Credential Manager test, set `OUTREACH_OS_TESTS=
 | Display scaling, smaller monitors, saved window size and invalid geometry | Window unit tests, SQLite reopen test and native window persistence |
 | Credentials, cancellation, confirmation, close while sending | Desktop unit tests; actual OS credential round trip |
 | Windows Yes/No dialog responses, safe defaults, errors and duplicate start | Platform adapter and full desktop boundary tests; native Windows fixture uses Wails response strings |
+| Complete recipient results, separate outcomes, visible failure reasons, search and pagination beyond 100 recipients | Component tests and Chromium/WebKit tests with saved job fixtures |
 | Progress/cancellation visible after starting from a long message | Chromium/WebKit viewport and keyboard-focus regression tests |
 | Error details, Wails serialization, log receipts, redaction, rotation and write failures | Diagnostics, desktop, component and native tests |
 | Actual Svelte → Wails → SQLite → TLS SMTP flow | Native WKWebView / WebView2 test, including errors, retry and deletion |

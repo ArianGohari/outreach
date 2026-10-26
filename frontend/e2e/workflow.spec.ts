@@ -736,10 +736,115 @@ for (const cancelled of [false, true]) {
       page.getByRole('heading', { name: /Progress$/ }),
     ).toBeInViewport();
     await expect(
-      page.getByText('Job running', { exact: true }),
+      page.getByRole('status', { name: 'Job status' }),
     ).toBeInViewport();
     await expect(
       page.getByRole('region', { name: 'Job progress', exact: true }),
     ).toBeFocused();
   });
 }
+
+test('reopened jobs show all recipient outcomes, visible errors and searchable pages', async ({
+  page,
+}) => {
+  await page.evaluate(async () => {
+    const api = (window as any).go.main.App;
+    (window as any).__jobs['job-1'].name = 'Original draft';
+    const created = await api.CreateJob('Result review');
+    const job = (window as any).__jobs[created.id];
+    const plan = await api.Preview(job.id, {
+      ...job.request,
+      subject: 'Hello {{First Name}}',
+      body: 'Synthetic message',
+    });
+    job.plan = plan;
+    const deliveries = Array.from({ length: 121 }, (_, i) => ({
+      key: String(i),
+      to: `person-${i}@example.org`,
+      status:
+        i === 0
+          ? 'sent'
+          : i === 1
+            ? 'failed'
+            : i === 2
+              ? 'uncertain'
+              : i === 3
+                ? 'blocked'
+                : 'pending',
+      detail:
+        i === 1
+          ? 'SMTP RCPT TO: 550 recipient rejected · Error ID synthetic-1'
+          : i === 2
+            ? 'Connection lost after DATA; acknowledgement missing'
+            : '',
+      updated: '2026-10-26T10:00:00Z',
+    }));
+    const result = { plan, deliveries, running: false, nextAt: '', error: '' };
+    const getState = api.GetState;
+    api.GetState = async (id: string) =>
+      id === job.id ? structuredClone(result) : getState(id);
+    const workspace = api.GetWorkspace;
+    api.GetWorkspace = async () =>
+      (await workspace()).map((j: any) => ({
+        ...j,
+        state: j.id === job.id ? structuredClone(result) : j.state,
+      }));
+  });
+  await page.getByRole('button', { name: 'Save draft', exact: true }).click();
+  await page.getByRole('tab', { name: /Dashboard/ }).click();
+  await page
+    .getByRole('button', { name: /Result review.*Paused · Check error/ })
+    .click();
+  await expect(page.getByRole('status', { name: 'Job status' })).toHaveText(
+    'Paused · Check errors',
+  );
+  const table = page.getByRole('table');
+  await expect(
+    table.getByRole('row').filter({ hasText: 'person-0@example.org' }),
+  ).toContainText('Accepted by provider');
+  await expect(
+    table.getByRole('row').filter({ hasText: 'person-1@example.org' }),
+  ).toContainText('550 recipient rejected');
+  await expect(table.getByText(/Error ID synthetic-1/)).toBeVisible();
+  await expect(
+    table.getByRole('row').filter({ hasText: 'person-2@example.org' }),
+  ).toContainText('Uncertain · Locked');
+  await expect(
+    table.getByRole('row').filter({ hasText: 'person-4@example.org' }),
+  ).toContainText('Not attempted');
+  await page.getByRole('button', { name: 'Next', exact: true }).click();
+  await page.getByRole('button', { name: 'Next', exact: true }).click();
+  await expect(table.getByText('person-120@example.org')).toBeVisible();
+  await page
+    .getByRole('combobox', { name: 'Status', exact: true })
+    .selectOption('failed');
+  await expect(
+    page.getByRole('status', { name: 'Recipient range' }),
+  ).toHaveText('1–1 of 1 matching · 121 total');
+  await page
+    .getByRole('combobox', { name: 'Status', exact: true })
+    .selectOption('');
+  await page.getByLabel('Find recipient').fill('PERSON-120@EXAMPLE.ORG');
+  await expect(table.getByText('person-120@example.org')).toBeVisible();
+  await page.getByLabel('Find recipient').fill('');
+  await page.setViewportSize({ width: 640, height: 800 });
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+  ).toBe(true);
+  await page
+    .getByRole('combobox', { name: 'Status', exact: true })
+    .selectOption('failed');
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await page.screenshot({
+    path: `test-results/recipient-results-${test.info().project.name}.png`,
+    fullPage: true,
+  });
+  await page.getByRole('button', { name: 'Edit job', exact: true }).click();
+  await page
+    .getByRole('button', { name: 'View recipients & progress' })
+    .click();
+  await expect(table.getByText(/Error ID synthetic-1/)).toBeVisible();
+  expect(await page.evaluate(() => (window as any).__testSendCount())).toBe(0);
+});

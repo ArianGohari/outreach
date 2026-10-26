@@ -1,5 +1,5 @@
-Fix Windows confirmations incorrectly cancelling sending, Google disconnection and quitting. Cancellation remains the default.
+Show every recipient in the current sending plan, with separate outcomes and visible error reasons. Add search, status filters and pagination.
 
-Show progress or cancellation immediately after Send, even when scrolled to the bottom.
+Clarify cancelled starts and provider acceptance.
 
 Windows builds remain unsigned; Smart App Control may block the app.

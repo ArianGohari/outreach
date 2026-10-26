@@ -208,7 +208,7 @@ export function canStart(
   );
 }
 export const statusLabel: Record<string, string> = {
-  pending: 'Pending',
+  pending: 'Not attempted',
   sending: 'Sending',
   sent: 'Accepted by provider',
   failed: 'Failed',
