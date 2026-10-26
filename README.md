@@ -1,14 +1,14 @@
 # Outreach
 
-Desktop-App für personalisierten E-Mail-Outreach aus Apollo-CSV-Dateien. Mit Nachrichtenvorlagen, Vorschau, Testmail und parallelen Jobs über mehrere SMTP-Konten. Gebaut mit Go, Wails und Svelte.
+Desktop app for personalized email outreach from Apollo CSV exports. Templates, previews, test emails and parallel jobs across SMTP accounts. Built with Go, Wails and Svelte.
 
-**[macOS ARM herunterladen](https://github.com/ArianGohari/outreach/releases/latest/download/Outreach-macos-arm64.zip)** · **[Windows x64 herunterladen](https://github.com/ArianGohari/outreach/releases/latest/download/Outreach-windows-x64.zip)**
+**[Download for macOS ARM](https://github.com/ArianGohari/outreach/releases/latest/download/Outreach-macos-arm64.zip)** · **[Download for Windows x64](https://github.com/ArianGohari/outreach/releases/latest/download/Outreach-windows-x64.zip)**
 
-ZIP entpacken und die App starten. Die Builds sind nicht mit einem Herausgeberzertifikat signiert; beim ersten Öffnen können Sicherheitsmeldungen erscheinen. Windows benötigt WebView2.
+Unzip and launch. Builds are not publisher-signed or notarized; security prompts may appear. Windows requires WebView2.
 
-## Entwickeln
+## Develop
 
-Voraussetzungen: Go laut [go.mod](go.mod), Node.js 24+ und die [Wails-Systemvoraussetzungen](https://wails.io/docs/gettingstarted/installation/).
+Requires Go as specified in [go.mod](go.mod), Node.js 24+ and the [Wails prerequisites](https://wails.io/docs/gettingstarted/installation/).
 
 ```sh
 go install github.com/wailsapp/wails/v2/cmd/wails@v2.17.0
@@ -16,9 +16,9 @@ npm --prefix frontend ci
 wails dev
 ```
 
-Produktvorgaben, Architektur und Versandregeln stehen in [AGENTS.md](AGENTS.md). Die aktuelle Oberfläche im Code ist die Designreferenz.
+Read [AGENTS.md](AGENTS.md) for architecture, product decisions and sending safeguards. The current UI code is the design reference.
 
-## Prüfen und bauen
+## Test and build
 
 ```sh
 npm --prefix frontend run build
@@ -27,17 +27,12 @@ go test -race ./...
 go vet ./...
 ```
 
-Browser-Tests und weitere Testregeln: [AGENTS.md](AGENTS.md#arbeitsweise-und-tests). Auf Windows braucht der Go-Race-Test einen C-Compiler. Tests versenden keine echten Mails.
+Browser tests: run `npx playwright install chromium webkit` and `npm run test:e2e` inside `frontend`. Go race tests require a C compiler. Tests send no real emails.
 
-```sh
-make build-mac
-make build-windows
-```
+Build with `make build-mac` or `make build-windows`. On Windows without Make, use `wails build -platform windows/amd64`. Output: `build/bin/`. Run builds sequentially.
 
-Auf Windows ohne Make: `wails build -platform windows/amd64`. Ergebnisse liegen in `build/bin/`. Builds nacheinander ausführen.
+## Release
 
-## Releases
+Update `info.productVersion` in `wails.json`, commit and push the matching `vX.Y.Z` tag. [GitHub Actions](.github/workflows/check.yml) tests both platforms and publishes ZIPs and checksums to [Releases](https://github.com/ArianGohari/outreach/releases).
 
-`info.productVersion` in `wails.json` aktualisieren, committen und pushen. Danach den passenden Tag `vX.Y.Z` pushen. [GitHub Actions](.github/workflows/check.yml) testet beide Plattformen und veröffentlicht ZIP-Dateien mit Prüfsummen unter [Releases](https://github.com/ArianGohari/outreach/releases).
-
-Der Duplikatschutz beruht auf der lokalen Versandhistorie. Die Datenbank nicht löschen oder zurücksetzen. Manuelle Tests auf den Zielsystemen bleiben zusätzlich zu CI erforderlich.
+Keep the local database: it preserves sending history and duplicate protection. CI does not replace manual testing on the target systems.

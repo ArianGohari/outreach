@@ -1,20 +1,38 @@
+# Generated builds and dependencies
 /build/bin/
+/release/
 /frontend/node_modules/
 /frontend/dist/
 /frontend/wailsjs/
 /frontend/package.json.md5
+*.tsbuildinfo
+
+# Test output
+/coverage.out
+/frontend/coverage/
+/frontend/test-results/
+/frontend/playwright-report/
+
+# Local data and credentials
 *.db
 *.db-shm
 *.db-wal
-.DS_Store
-/coverage.out
-/frontend/test-results/
-/frontend/playwright-report/
-/release/
+*.db.lock
+*.log
+*.jsonl
 .env
 .env.*
 !.env.example
-*.log
-*.jsonl
-*.db.lock
+/*.csv
+!/Testkontakte.csv
 Master.csv
+
+# Historical design and unused Wails scaffolding
+/Outreach.html
+/build/README.md
+/build/windows/installer/
+
+# OS metadata
+.DS_Store
+Thumbs.db
+Desktop.ini

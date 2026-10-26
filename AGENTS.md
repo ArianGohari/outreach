@@ -37,7 +37,7 @@ Der vorhandene Schutz ist lokal und gilt für identischen Nachrichteninhalt. Ge�
 - Einen eingerichteten Tab schließen beendet oder löscht den Job nicht. Unberührte leere Entwürfe nicht im Dashboard anzeigen; beim Schließen bzw. Start bereinigen. Keine Benutzereingaben dabei verwerfen.
 - Löschen im Dashboard braucht eine kurze Bestätigung. Fehler beim Speichern oder Löschen sichtbar melden; keinen Erfolg vortäuschen.
 - Neue Jobs: 30 Sekunden zwischen Mails, Batchgröße 50, Batchpause 24 Stunden. Bestehende Einstellungen erhalten. UI in Stunden, gespeicherte Werte weiterhin in Minuten; Plan-IDs dürfen durch Einheitenwechsel nicht verändert werden.
-- Der aktuelle Code in `frontend/src` ist die Designreferenz. `Outreach.html` ist ein historischer Entwurf. Daraus keine alten Checkboxen, Hinweise oder Layouts wieder übernehmen.
+- Der aktuelle Code in `frontend/src` ist die Designreferenz. `Outreach.html` ist ein historischer, lokal ignorierter Entwurf (bei Bedarf in der Git-Historie). Daraus keine alten Checkboxen, Hinweise oder Layouts wieder übernehmen.
 - Kontakte immer deduplizieren, keine "Ohne Duplikate"-Checkbox. "Nur verifizierte" bleibt ein echter Filter. Fehlt der Verifizierungsstatus, muss er für den Import ausdrücklich deaktiviert werden.
 - Kein festes Dropdown "E-Mail-Spalte"; Apollo `Email` ist die Empfängerspalte. Die Kontaktvorschau zeigt alle importierten Spalten.
 - UI-Texte auf ihren Nutzen prüfen. Überflüssige Einleitungen entfernen; hilfreiche Hinweise kürzen. Aussagekräftige Fehler, Versandgrenzen und die Template-Anleitung erhalten.
