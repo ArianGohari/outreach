@@ -97,6 +97,56 @@ func TestJobsParallelIsolationAndAccountExclusion(t *testing.T) {
 	}
 	jobs.Close()
 }
+
+func TestAccountRemainsLockedDuringBatchPauseUntilStopped(t *testing.T) {
+	sender := &fakeSender{}
+	jobs, err := NewJobs(testStore(t), sender, RealClock{}, nil, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer jobs.Close()
+	first, a, _ := createPreparedJob(t, jobs, "Waiting", "a@example.org")
+	second, b, tb := createPreparedJob(t, jobs, "Next", "A@EXAMPLE.ORG")
+	a.Schedule = Schedule{Seconds: 1, BatchSize: 1, BatchMinutes: 1440}
+	ta, err := first.Session.Test(context.Background(), a, 0, "test@example.org")
+	if err != nil {
+		t.Fatal(err)
+	}
+	before := sender.count()
+	if err = jobs.Start(first, a, ta); err != nil {
+		t.Fatal(err)
+	}
+	deadline := time.Now().Add(5 * time.Second)
+	for {
+		state, err := first.Engine.State()
+		if err != nil {
+			t.Fatal(err)
+		}
+		if state.NextAt != "" && state.Deliveries[0].Status == "sent" {
+			if !state.Running {
+				t.Fatal("pause released the worker")
+			}
+			break
+		}
+		if time.Now().After(deadline) {
+			t.Fatal("batch pause not reached")
+		}
+		time.Sleep(time.Millisecond)
+	}
+	if err = jobs.Start(second, b, tb); err == nil {
+		t.Fatal("second job started during batch pause")
+	}
+	if err = jobs.Delete(first.ID); err == nil {
+		t.Fatal("waiting worker was deleted")
+	}
+	first.Engine.Close()
+	if sender.count() != before+1 {
+		t.Fatal("stop sent the next batch")
+	}
+	if err = jobs.Start(second, b, tb); err != nil {
+		t.Fatal("stopped job kept the account locked", err)
+	}
+}
 func TestConcurrentStartsSameAddressHaveOneWinner(t *testing.T) {
 	sender := &fakeSender{}
 	jobs, err := NewJobs(testStore(t), sender, newClock(), nil, nil)
