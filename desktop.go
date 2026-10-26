@@ -31,7 +31,7 @@ type desktopServices struct {
 }
 
 var nativeServices = desktopServices{
-	openFile: runtime.OpenFileDialog, message: runtime.MessageDialog,
+	openFile: runtime.OpenFileDialog, message: showMessageDialog,
 	setPassword: keyring.Set, getPassword: keyring.Get, deletePassword: keyring.Delete,
 	emit:        runtime.EventsEmit,
 	openBrowser: browser.OpenURL,

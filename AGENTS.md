@@ -43,6 +43,8 @@ Der vorhandene Schutz ist lokal und gilt für identischen Nachrichteninhalt. Ge�
 - Jobs derselben Adresse dürfen vorbereitet werden; sie starten nach Freigabe manuell.
 - Dashboard und Job-Tabs. Neue Jobs über das Plus in der Tab-Leiste, kein zusätzlicher "Neuer Job"-Button.
 - Einen eingerichteten Tab schließen beendet oder löscht den Job nicht. Unberührte leere Entwürfe nicht im Dashboard anzeigen; beim Schließen bzw. Start bereinigen. Keine Benutzereingaben dabei verwerfen.
+- Native Bestätigungen über `showMessageDialog` führen: Wails 2 ignoriert unter Windows eigene Button-Texte und liefert `Yes`/`No`. Nur ein explizites `Yes` darf bestätigen; Standard immer `No`. Dialogfehler und unbekannte Antworten dürfen keine Aktion freigeben.
+- Nach bestätigtem Versandstart den Fortschritt sichtbar machen; Abbruchmeldungen ebenfalls in den sichtbaren Bereich bringen. Reine Fortschrittsupdates dürfen den Scroll-/Tastaturfokus nicht stehlen.
 - Löschen im Dashboard braucht eine kurze Bestätigung. Fehler beim Speichern oder Löschen sichtbar melden; keinen Erfolg vortäuschen.
 - Neue Jobs: 30 Sekunden zwischen Mails, Batchgröße 50, Batchpause 24 Stunden. Bestehende Einstellungen erhalten. UI in Stunden, gespeicherte Werte weiterhin in Minuten; Plan-IDs dürfen durch Einheitenwechsel nicht verändert werden.
 - Der aktuelle Code in `frontend/src` ist die Designreferenz. `Outreach.html` ist ein historischer, lokal ignorierter Entwurf (bei Bedarf in der Git-Historie). Daraus keine alten Checkboxen, Hinweise oder Layouts wieder übernehmen.

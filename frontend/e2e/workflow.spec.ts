@@ -682,3 +682,64 @@ test('dashboard, jobs, tabs, notices and action statuses share alignment', async
     await page.getByRole('tab', { name: /^Alignment/ }).click();
   }
 });
+
+for (const cancelled of [false, true]) {
+  test(`sending ${cancelled ? 'cancellation' : 'progress'} is immediately visible from the bottom`, async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 1000, height: 650 });
+    await page.getByLabel('SMTP server').fill('smtp.example.org');
+    await page
+      .getByLabel('Username', { exact: true })
+      .fill('sender@example.org');
+    await page.getByLabel('Password', { exact: true }).fill('synthetic-only');
+    await page.getByRole('button', { name: 'Check connection' }).click();
+    await page.getByRole('button', { name: 'Choose file' }).click();
+    await page.getByLabel('Verified only', { exact: true }).uncheck();
+    await page.getByRole('button', { name: 'Check contacts' }).click();
+    await page
+      .getByLabel('Subject', { exact: true })
+      .fill('Hello {{First Name}}');
+    await page
+      .getByLabel('Text', { exact: true })
+      .fill('Synthetic message line.\n'.repeat(80));
+    await page.getByRole('button', { name: 'Validate & preview' }).click();
+    await page.getByRole('button', { name: 'Send test email' }).click();
+    if (cancelled) {
+      await page.evaluate(() => {
+        (window as any).go.main.App.Start = async () => {
+          throw {
+            cancelled: true,
+            code: 'CANCELLED',
+            message: 'Sending cancelled',
+          };
+        };
+      });
+    }
+    await page.getByRole('button', { name: 'Send', exact: true }).click();
+    if (cancelled) {
+      const status = page
+        .getByRole('status')
+        .filter({ hasText: 'Sending cancelled' });
+      await expect(status).toBeInViewport();
+      await expect(status).toBeFocused();
+      await expect(
+        page.getByRole('region', { name: 'Job progress', exact: true }),
+      ).toHaveCount(0);
+      expect(await page.evaluate(() => (window as any).__testSendCount())).toBe(
+        0,
+      );
+      return;
+    }
+
+    await expect(
+      page.getByRole('heading', { name: /Progress$/ }),
+    ).toBeInViewport();
+    await expect(
+      page.getByText('Job running', { exact: true }),
+    ).toBeInViewport();
+    await expect(
+      page.getByRole('region', { name: 'Job progress', exact: true }),
+    ).toBeFocused();
+  });
+}

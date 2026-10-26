@@ -1,6 +1,6 @@
 <script lang="ts">
   const uid = $props.id();
-  import { onMount } from 'svelte';
+  import { onMount, tick } from 'svelte';
   import TemplateGuide from './TemplateGuide.svelte';
   import ErrorNotice from './ErrorNotice.svelte';
   import JobProgress from './JobProgress.svelte';
@@ -149,6 +149,9 @@
     tested = $state(''),
     testTo = $state('');
   let bodyInput: HTMLTextAreaElement;
+  let progressPanel = $state<HTMLDivElement>();
+  let noticePanel = $state<HTMLDivElement>();
+  let starting = $state(false);
   let revision = 0;
   const message = $derived(plan?.messages[index]);
   const sent = $derived(
@@ -197,6 +200,8 @@
     if (isProblem(value)) {
       if (value.cancelled) {
         notice = value.message;
+        await tick();
+        revealStatus(noticePanel);
         return;
       }
       error = value;
@@ -317,12 +322,27 @@
       tested = await backend().SendTest(request(), index, testTo);
     });
   }
+  function revealStatus(panel: HTMLElement | undefined) {
+    if (!panel?.getClientRects().length) return;
+    panel.focus({ preventScroll: true });
+    window.scrollTo({ top: 0, behavior: 'instant' });
+  }
   async function start() {
-    await action(async () => {
-      await backend().Start(request(), tested);
-      await refresh();
-      view = 'progress';
-    });
+    if (busy) return;
+    starting = true;
+    try {
+      await action(async () => {
+        await backend().Start(request(), tested);
+        await refresh();
+        view = 'progress';
+        await tick();
+        // Keep the result visible after the long editor collapses. Only move
+        // focus for this explicit start; background job updates must not scroll.
+        if (!error) revealStatus(progressPanel);
+      });
+    } finally {
+      starting = false;
+    }
   }
   function insert(column: string) {
     const value = `{{${column}}}`;
@@ -385,19 +405,34 @@
     <h1>{jobName}</h1>
   </header>
   {#if error}<ErrorNotice problem={error} />{/if}
-  {#if notice}<div class="feedback" role="status">{notice}</div>{/if}
+  {#if notice}<div
+      class="feedback"
+      role="status"
+      tabindex="-1"
+      bind:this={noticePanel}
+    >
+      {notice}
+    </div>{/if}
   {#if view === 'progress'}
-    <JobProgress
-      state={deliveryState}
-      {busy}
-      onEdit={() => (view = 'edit')}
-      onStop={() =>
-        action(async () => {
-          await backend().Stop();
-          await refresh();
-          notice = 'Stopping after the current transfer.';
-        })}
-    />
+    <div
+      bind:this={progressPanel}
+      class="job-progress"
+      role="region"
+      aria-label="Job progress"
+      tabindex="-1"
+    >
+      <JobProgress
+        state={deliveryState}
+        {busy}
+        onEdit={() => (view = 'edit')}
+        onStop={() =>
+          action(async () => {
+            await backend().Stop();
+            await refresh();
+            notice = 'Stopping after the current transfer.';
+          })}
+      />
+    </div>
   {/if}
   <div hidden={view !== 'edit'}>
     <section aria-labelledby={uid + '-sender-heading'}>
@@ -768,7 +803,8 @@
               await backend().Stop();
               notice = 'Stopping after the current transfer.';
             })}>Stop</button
-        >{#if busy}<span class="small muted" role="status">Checking...</span
+        >{#if busy}<span class="small muted" role="status"
+            >{starting ? 'Starting...' : 'Checking...'}</span
           >{/if}
       </div>
       {#if deliveryState.error && !deliveryState.problem}<p
@@ -826,6 +862,10 @@
 </div>
 
 <style>
+  .job-progress:focus,
+  .feedback:focus {
+    outline: none;
+  }
   .job-name,
   .account-choice {
     margin-bottom: 24px;

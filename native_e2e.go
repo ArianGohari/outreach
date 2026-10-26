@@ -15,6 +15,7 @@ import (
 	"outreach/internal/outreach"
 	"outreach/internal/testsupport"
 	"path/filepath"
+	goruntime "runtime"
 	"sync"
 	"time"
 )
@@ -57,8 +58,13 @@ func main() {
 	// validation, database and TLS SMTP transport remain in use.
 	services := nativeServices
 	services.openFile = func(context.Context, runtime.OpenDialogOptions) (string, error) { return csv, nil }
-	services.message = func(_ context.Context, o runtime.MessageDialogOptions) (string, error) {
-		return o.Buttons[len(o.Buttons)-1], nil
+	services.message = func(ctx context.Context, o runtime.MessageDialogOptions) (string, error) {
+		return platformMessageDialog(ctx, goruntime.GOOS, o, func(_ context.Context, native runtime.MessageDialogOptions) (string, error) {
+			if goruntime.GOOS == "windows" {
+				return "Yes", nil
+			}
+			return native.Buttons[len(native.Buttons)-1], nil
+		})
 	}
 	services.deletePassword = func(string, string) error { return nil }
 	a.services = &services
