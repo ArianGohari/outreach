@@ -572,7 +572,10 @@
           Port 465: TLS · Other ports: STARTTLS.
         </p>{/if}
     </section>
-    <section aria-labelledby={uid + '-contacts-heading'}>
+    <section
+      class="contacts-section"
+      aria-labelledby={uid + '-contacts-heading'}
+    >
       <h2 id={uid + '-contacts-heading'}><b>02</b>Contacts</h2>
       <div class="grid">
         <div class="full">
@@ -847,6 +850,17 @@
 </div>
 
 <style>
+  .job-editor > header,
+  section {
+    max-width: 760px;
+    margin-inline: auto;
+  }
+  .contacts-section .table-wrap {
+    width: var(--workspace-content-width, 100%);
+    position: relative;
+    left: 50%;
+    transform: translateX(-50%);
+  }
   .job-name,
   .account-choice {
     margin-bottom: 24px;

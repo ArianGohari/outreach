@@ -68,6 +68,11 @@ func main() {
 	finish := func(ctx context.Context, result string) {
 		once.Do(func() {
 			a.shutdown(ctx)
+			a.saveWindow(ctx)
+			savedSize, sizeErr := a.store.LoadWindowSize()
+			if sizeErr != nil || !savedSize.Valid() {
+				result = fmt.Sprintf("Window size was not persisted: %+v (%v)", savedSize, sizeErr)
+			}
 			messages, recipients := sink.Snapshot()
 			payload, _ := json.Marshal(map[string]interface{}{"result": result, "messages": messages, "recipients": recipients})
 			if e := os.WriteFile(filepath.Join(dir, "result.json"), payload, 0600); e != nil {
@@ -86,6 +91,7 @@ func main() {
 		go func() { time.Sleep(90 * time.Second); finish(ctx, "native test timed out") }()
 	}
 	opts.OnDomReady = func(ctx context.Context) {
+		a.restoreWindow(ctx)
 		cfg, _ := json.Marshal(map[string]interface{}{"port": sink.Listener.Addr().(*net.TCPAddr).Port})
 		runtime.WindowExecJS(ctx, "window.__nativeTest="+string(cfg)+";"+nativeScript)
 	}

@@ -299,13 +299,31 @@ test('layout fits supported window sizes and displays imported text literally', 
     path: `test-results/dashboard-${test.info().project.name}.png`,
   });
   await page.getByRole('tab', { name: /^New job/ }).click();
-  for (const width of [640, 1000, 1440]) {
-    await page.setViewportSize({ width, height: 900 });
+  await page.getByRole('button', { name: 'Choose file' }).click();
+  await page.getByLabel('Verified only', { exact: true }).uncheck();
+  for (const [width, height] of [
+    [640, 480],
+    [1000, 760],
+    [1440, 900],
+    [1920, 1080],
+  ]) {
+    await page.setViewportSize({ width, height });
+    const contacts = await page
+      .locator('.contacts-section .table-wrap')
+      .boundingBox();
+    const message = await page
+      .getByRole('textbox', { name: 'Subject', exact: true })
+      .boundingBox();
+    expect(contacts).not.toBeNull();
+    expect(message).not.toBeNull();
+    expect(message!.width).toBeLessThanOrEqual(760);
+    if (width >= 1440) expect(contacts!.width).toBeGreaterThan(1000);
     expect(
       await page.evaluate(
         () => document.documentElement.scrollWidth <= innerWidth,
       ),
     ).toBe(true);
+    await page.evaluate(() => window.scrollTo(0, 0));
     await page.screenshot({
       path: `test-results/editor-${width}-${test.info().project.name}.png`,
       fullPage: true,

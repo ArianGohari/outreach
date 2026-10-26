@@ -37,6 +37,7 @@ For the real Keychain / Windows Credential Manager test, set `OUTREACH_OS_TESTS=
 | Draft persistence, secret removal, legacy migration, empty drafts | Jobs and desktop integration tests |
 | Delete jobs while retaining history and duplicate protection | Jobs, UI and native tests |
 | Dashboard, tabs, account reuse, defaults, hours conversion, keyboard and narrow layouts | Component tests and Chromium/WebKit browser tests |
+| Display scaling, smaller monitors, saved window size and invalid geometry | Window unit tests, SQLite reopen test and native window persistence |
 | Credentials, cancellation, confirmation, close while sending | Desktop unit tests; actual OS credential round trip |
 | Error details, Wails serialization, log receipts, redaction, rotation and write failures | Diagnostics, desktop, component and native tests |
 | Actual Svelte → Wails → SQLite → TLS SMTP flow | Native WKWebView / WebView2 test, including errors, retry and deletion |
@@ -53,6 +54,7 @@ CI runs the suites, native app test, credential test and release build on macOS 
 These still require manual testing of a downloaded build on a clean macOS ARM machine and **Windows 11 Home**. The Windows CI runner uses Windows Server.
 
 - Extract and launch the ZIP, including unsigned-app prompts and WebView2 installation.
+- Resize and reopen; move between displays with different scaling. Check that the window fits and wide tables scroll internally.
 - Select and cancel files using the actual OS picker; confirm and cancel sending and quitting.
 - Save, reload and remove a synthetic credential; check behavior when the credential store is locked or access is denied.
 - Sleep/wake, network loss and resume during a batch pause; verify pending contacts and durable duplicate protection using a local SMTP sink.

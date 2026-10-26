@@ -389,6 +389,12 @@
     object-position: left;
   }
   .workspace {
+    --workspace-content-width: min(
+      1120px,
+      calc(100vw - clamp(32px, 6vw, 64px))
+    );
+    max-width: 1184px;
+    padding-inline: clamp(16px, 3vw, 32px);
     padding-top: 0;
   }
 

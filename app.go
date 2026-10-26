@@ -16,6 +16,7 @@ import (
 
 type App struct {
 	ctx            context.Context
+	store          *outreach.Store
 	jobs           *outreach.Jobs
 	reporter       *diagnostics.Reporter
 	startupProblem *diagnostics.Problem
@@ -43,7 +44,7 @@ func NewApp(store *outreach.Store, reporters ...*diagnostics.Reporter) (*App, er
 }
 
 func newApp(store *outreach.Store, sender outreach.Sender, clock outreach.Clock, reporters ...*diagnostics.Reporter) (*App, error) {
-	a := &App{}
+	a := &App{store: store}
 	if len(reporters) > 0 {
 		a.reporter = reporters[0]
 	}
@@ -87,7 +88,12 @@ func (a *App) notifyProblem(p *diagnostics.Problem) {
 		a.desktop().emit(a.ctx, "outreach:error", p)
 	}
 }
-func (a *App) beforeClose(ctx context.Context) bool {
+func (a *App) beforeClose(ctx context.Context) (prevent bool) {
+	defer func() {
+		if !prevent {
+			a.saveWindow(ctx)
+		}
+	}()
 	if a.jobs == nil {
 		return false
 	}
