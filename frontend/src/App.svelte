@@ -247,7 +247,17 @@
     aria-labelledby="tab-overview"
     hidden={active !== 'overview'}
   >
-    <header><h1>Outreach Tool</h1></header>
+    <header>
+      <h1>
+        <img
+          class="wordmark"
+          src="/brand/wordmark.svg"
+          alt="Outreach"
+          width="152"
+          height="40"
+        />
+      </h1>
+    </header>
     <section aria-labelledby="jobs-heading">
       <h2 id="jobs-heading"><b>01</b>Jobs</h2>
       {#if busy && !dashboardJobs.length}<p class="muted" role="status">
@@ -372,6 +382,12 @@
 </main>
 
 <style>
+  .wordmark {
+    display: block;
+    max-width: 100%;
+    object-fit: contain;
+    object-position: left;
+  }
   .workspace {
     padding-top: 0;
   }

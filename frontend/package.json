@@ -1,6 +1,6 @@
 {
   "name": "outreach-frontend",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -8,7 +8,8 @@
     "build": "svelte-check --tsconfig ./tsconfig.json && vite build",
     "check": "svelte-check --tsconfig ./tsconfig.json",
     "test": "vitest run",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "brand:build": "node ../scripts/build-brand.mjs"
   },
   "devDependencies": {
     "@playwright/test": "^1.56.0",
@@ -25,5 +26,9 @@
     "typescript": "^5.6.3",
     "vite": "^8.0.13",
     "vitest": "^4.1.12"
+  },
+  "packageManager": "pnpm@12.15.0",
+  "engines": {
+    "node": ">=24"
   }
 }

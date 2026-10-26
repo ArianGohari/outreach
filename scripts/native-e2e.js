@@ -49,6 +49,11 @@
   }
   try {
     assert(document.documentElement.lang === "en", "app language must be English");
+    assert((await document.fonts.load("14px Geist")).length > 0, "bundled font did not load");
+    await until(() => {
+      const logo = document.querySelector('img[alt="Outreach"]');
+      return logo?.complete && logo.naturalWidth > 0;
+    }, "bundled wordmark");
     await click("Create new job");
     await until(
       () =>

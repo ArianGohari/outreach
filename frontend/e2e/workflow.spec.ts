@@ -279,6 +279,26 @@ test('five-step flow, missing verification, preview, test, invalidation and stop
 test('layout fits supported window sizes and displays imported text literally', async ({
   page,
 }) => {
+  await page.getByRole('tab', { name: /^Dashboard/ }).click();
+  expect(
+    await page.evaluate(
+      async () => (await document.fonts.load('14px Geist')).length,
+    ),
+  ).toBeGreaterThan(0);
+  await expect(
+    page.getByRole('img', { name: 'Outreach', exact: true }),
+  ).toBeVisible();
+  expect(
+    await page
+      .getByRole('img', { name: 'Outreach', exact: true })
+      .evaluate(
+        (image: HTMLImageElement) => image.complete && image.naturalWidth > 0,
+      ),
+  ).toBe(true);
+  await page.screenshot({
+    path: `test-results/dashboard-${test.info().project.name}.png`,
+  });
+  await page.getByRole('tab', { name: /^New job/ }).click();
   for (const width of [640, 1000, 1440]) {
     await page.setViewportSize({ width, height: 900 });
     expect(
@@ -286,6 +306,10 @@ test('layout fits supported window sizes and displays imported text literally', 
         () => document.documentElement.scrollWidth <= innerWidth,
       ),
     ).toBe(true);
+    await page.screenshot({
+      path: `test-results/editor-${width}-${test.info().project.name}.png`,
+      fullPage: true,
+    });
   }
   await page.setViewportSize({ width: 1000, height: 900 });
   await page.screenshot({

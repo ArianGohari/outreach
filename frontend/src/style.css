@@ -1,6 +1,19 @@
+@font-face {
+  font-family: 'Geist';
+  src: url('/fonts/Geist.woff2') format('woff2');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
 :root {
   font-family:
-    -apple-system, BlinkMacSystemFont, 'Helvetica Neue', system-ui, sans-serif;
+    'Geist',
+    -apple-system,
+    BlinkMacSystemFont,
+    'Helvetica Neue',
+    system-ui,
+    sans-serif;
   color: #0b0b0b;
   background: #fff;
   font-synthesis: none;
@@ -22,9 +35,10 @@ header {
   margin-bottom: 48px;
 }
 h1 {
-  font-size: 20px;
-  line-height: 28px;
-  font-weight: 500;
+  font-size: 28px;
+  line-height: 36px;
+  font-weight: 600;
+  letter-spacing: -0.035em;
   margin: 0 0 8px;
 }
 header p {
@@ -35,23 +49,26 @@ section {
   border-top: 1px solid #e6e6e6;
   padding: 24px 0 48px;
 }
-h2,
+h2 {
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  margin: 0 0 24px;
+}
 .label,
 label > span:first-child {
-  font-size: 11px;
-  line-height: 16px;
+  font-size: 12px;
+  line-height: 18px;
   font-weight: 500;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
   color: #6b6b6b;
-}
-h2 {
-  margin: 0 0 24px;
 }
 h2 b {
   color: #0b0b0b;
+  font-size: 12px;
   font-weight: 500;
   margin-right: 12px;
+  font-variant-numeric: tabular-nums;
 }
 fieldset {
   border: 0;
@@ -86,7 +103,7 @@ select,
 textarea,
 button {
   font: inherit;
-  border-radius: 0;
+  border-radius: 4px;
 }
 input,
 select,
@@ -271,6 +288,7 @@ details {
   overflow: hidden;
 }
 .file button {
+  border-radius: 0;
   height: 42px;
   min-height: 42px;
   flex-shrink: 0;
@@ -298,10 +316,8 @@ table {
   text-align: left;
 }
 th {
-  font-size: 11px;
-  font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
+  font-size: 12px;
+  font-weight: 600;
   color: #6b6b6b;
   white-space: nowrap;
 }
@@ -397,8 +413,10 @@ dd {
   flex-wrap: wrap;
 }
 .number {
-  font-size: 28px;
-  line-height: 32px;
+  font-size: 30px;
+  line-height: 36px;
+  font-weight: 600;
+  letter-spacing: -0.04em;
   font-variant-numeric: tabular-nums;
 }
 progress {

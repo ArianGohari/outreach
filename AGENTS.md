@@ -6,8 +6,11 @@ Gilt für das gesamte Repository. Vor Änderungen diese Datei und `README.md` le
 
 Lokale Desktop-App: Apollo-CSV importieren, Textnachrichten mit Platzhaltern vorbereiten, Vorschau prüfen, Testmail senden, anschließend kontrolliert über SMTP versenden. Nutzung auf einem Rechner; kein Cloud-Backend und keine Synchronisierung zwischen Rechnern.
 
-- Go und Wails 2, Svelte 5 mit TypeScript, Vite, SQLite. Versionen aus `go.mod` und `frontend/package-lock.json` verwenden.
+- Go und Wails 2, Svelte 5 mit TypeScript, Vite, SQLite. Versionen aus `go.mod` und `frontend/pnpm-lock.yaml` verwenden.
 - Zielsysteme: macOS auf Apple Silicon (ARM64, deklarierte Mindestversion 13) und Windows 11 Home x64. Kein Linux-Produkt und kein Intel-Mac-Build vereinbart.
+- pnpm statt npm verwenden; Version in `frontend/package.json` festlegen. Nur `pnpm-lock.yaml` committen; CI und Wails installieren mit `--frozen-lockfile`.
+- Die bisherige Schwarz-Weiß-Palette exakt erhalten, inklusive bestehender Statusfarben. Keine neue Akzentfarbe. Die Bildmarke ersetzt das erste o der Wortmarke; kein separates Icon daneben.
+- Geist lokal aus `frontend/public/fonts` laden; Lizenz mitliefern. Farben und Typografie zentral in `frontend/src/style.css`, Markenassets in `frontend/public/brand`. Icons mit `pnpm --dir frontend brand:build` aus SVG erzeugen.
 - Bestehendes CSS weiterverwenden. Falls eine CSS-Library nötig wird, ist UnoCSS die vereinbarte Option; nicht vorsorglich installieren.
 - Kein Postfachzugriff, kein Einlesen von Antworten oder Bounces, kein Tracking. Ein vorhandenes CSV-Feld zu Bounces auszuwerten ist kein Postfachzugriff.
 - SMTP nur mit TLS/STARTTLS. Keine automatische Signatur: Eine Signatur steht nur dann in der Mail, wenn sie im Template eingetragen wurde.
@@ -100,8 +103,8 @@ Für jeden geänderten Verarbeitungsschritt passende Unit-Tests ergänzen oder a
 make setup
 make test
 cd frontend
-npx playwright install chromium webkit
-npm run test:e2e
+pnpm exec playwright install chromium webkit
+pnpm run test:e2e
 ```
 
 `make test` baut zuerst das Frontend, dann folgen Vitest, `go test -race -tags integration ./...` und `go vet -tags integration ./...`. Go bettet `frontend/dist` ein: Niemals Go-Kompilierung und einen Vite-Build gleichzeitig ausführen, der diesen Ordner ersetzt. Wails-Builds ebenfalls nacheinander ausführen, weil sie Dateien generieren.

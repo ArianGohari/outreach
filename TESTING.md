@@ -5,16 +5,16 @@ Tests use synthetic contacts, temporary databases and loopback SMTP servers. No 
 ## Run
 
 ```sh
-npm --prefix frontend ci
-npm --prefix frontend run build
-npm --prefix frontend test
+pnpm --dir frontend install --frozen-lockfile
+pnpm --dir frontend run build
+pnpm --dir frontend test
 go test -race -tags integration '-coverpkg=./...' '-coverprofile=coverage.out' ./...
 go vet -tags integration ./...
 go test ./internal/outreach -run '^$' -fuzz '^FuzzCSVNeverPanics$' -fuzztime=10s
 node scripts/native-e2e.mjs
 ```
 
-Run browser tests from `frontend`: `npx playwright install chromium webkit`, then `npm run test:e2e`.
+Run browser tests from `frontend`: `pnpm exec playwright install chromium webkit`, then `pnpm run test:e2e`.
 
 For the real Keychain / Windows Credential Manager test, set `OUTREACH_OS_TESTS=1` and run `go test -tags integration -run TestOperatingSystemCredentialRoundTrip .`. In PowerShell, set it with `$env:OUTREACH_OS_TESTS='1'`.
 

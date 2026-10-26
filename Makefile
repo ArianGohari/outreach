@@ -7,13 +7,13 @@ endif
 .PHONY: setup dev test test-native build-mac build-windows
 setup:
 	go install github.com/wailsapp/wails/v2/cmd/wails@v2.17.0
-	cd frontend && npm ci
+	cd frontend && pnpm install --frozen-lockfile
 
 dev:
 	$(WAILS) dev
 
 test:
-	cd frontend && npm run build && npm test
+	cd frontend && pnpm run build && pnpm test
 	go test -race -tags integration ./...
 	go vet -tags integration ./...
 

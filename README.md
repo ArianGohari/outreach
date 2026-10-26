@@ -8,11 +8,11 @@ Unzip and launch. Builds are not publisher-signed or notarized; security prompts
 
 ## Develop
 
-Requires Go as specified in [go.mod](go.mod), Node.js 24+ and the [Wails prerequisites](https://wails.io/docs/gettingstarted/installation/).
+Requires Go as specified in [go.mod](go.mod), Node.js 24+, [pnpm](https://pnpm.io/installation) (version pinned in `frontend/package.json`) and the [Wails prerequisites](https://wails.io/docs/gettingstarted/installation/).
 
 ```sh
 go install github.com/wailsapp/wails/v2/cmd/wails@v2.17.0
-npm --prefix frontend ci
+pnpm --dir frontend install --frozen-lockfile
 wails dev
 ```
 
@@ -23,8 +23,8 @@ Google Workspace without app passwords: [OAuth setup](GOOGLE.md).
 ## Test and build
 
 ```sh
-npm --prefix frontend run build
-npm --prefix frontend test
+pnpm --dir frontend run build
+pnpm --dir frontend test
 go test -race -tags integration ./...
 go vet -tags integration ./...
 ```

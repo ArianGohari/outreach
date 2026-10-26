@@ -1,7 +1,5 @@
-Download a ZIP from **Assets**, unzip and launch:
+Google OAuth for Gmail and Workspace, an English interface, and a new visual identity with Geist typography and app icons. Development now uses pnpm.
 
-- `Outreach-macos-arm64.zip`: Apple Silicon.
-- `Outreach-windows-x64.zip`: Windows 11 x64; requires WebView2.
-- `SHA256SUMS.txt`: download checksums.
+Download the ZIP for macOS Apple Silicon or Windows x64. Windows requires WebView2. Builds are not publisher-signed or notarized.
 
-Not publisher-signed or notarized. Automated tests passed; manual testing on target systems is still required.
+OAuth setup: https://github.com/ArianGohari/outreach/blob/main/GOOGLE.md

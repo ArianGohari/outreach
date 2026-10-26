@@ -1,11 +1,19 @@
 {
- "$schema":"https://wails.io/schemas/config.v2.json",
- "name":"Outreach",
- "outputfilename":"Outreach",
- "frontend:install":"npm ci",
- "frontend:build":"npm run build",
- "frontend:dev:watcher":"npm run dev",
- "frontend:dev:serverUrl":"auto",
- "author":{"name":"Arian"},
- "info":{"companyName":"Outreach","productName":"Outreach","productVersion":"0.1.0","copyright":"","comments":"Local email outreach app"}
+  "$schema": "https://wails.io/schemas/config.v2.json",
+  "name": "Outreach",
+  "outputfilename": "Outreach",
+  "frontend:install": "pnpm install --frozen-lockfile",
+  "frontend:build": "pnpm run build",
+  "frontend:dev:watcher": "pnpm run dev",
+  "frontend:dev:serverUrl": "auto",
+  "author": {
+    "name": "Arian"
+  },
+  "info": {
+    "companyName": "Outreach",
+    "productName": "Outreach",
+    "productVersion": "0.2.0",
+    "copyright": "",
+    "comments": "Local email outreach app"
+  }
 }

@@ -1,0 +1,3 @@
+# svelte-preprocess only prints a reminder; no build step is needed.
+allowBuilds:
+  svelte-preprocess: false
