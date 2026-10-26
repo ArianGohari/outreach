@@ -22,6 +22,12 @@ type Session struct {
 func NewSession(e *Engine, s Sender, report Report) *Session {
 	return &Session{engine: e, sender: s, Report: report, uncertainTests: map[string]bool{}}
 }
+
+func (s *Session) ClearApproval() {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.checked, s.tested, s.testRecipient = "", "", ""
+}
 func (s *Session) idle() error {
 	state, e := s.engine.State()
 	if e != nil {
@@ -110,7 +116,7 @@ func (s *Session) Test(ctx context.Context, r Request, index int, to string) (st
 		return "", e
 	}
 	if s.checked != digest(r.Config) {
-		return "", fmt.Errorf("SMTP-Verbindung für diese Einstellungen zuerst prüfen")
+		return "", fmt.Errorf("Verbindung für diese Einstellungen zuerst prüfen")
 	}
 	p, e := Prepare(r, s.Report)
 	p = scopePlan(p, s.engine.store.jobID)

@@ -12,14 +12,16 @@ import (
 )
 
 type Config struct {
-	Host     string `json:"host"`
-	Port     int    `json:"port"`
-	Username string `json:"username"`
-	Password string `json:"password,omitempty"`
-	FromName string `json:"fromName"`
-	From     string `json:"from"`
-	ReplyTo  string `json:"replyTo"`
-	Remember bool   `json:"remember"`
+	Provider    string `json:"provider,omitempty"`
+	GoogleGrant string `json:"googleGrant,omitempty"`
+	Host        string `json:"host"`
+	Port        int    `json:"port"`
+	Username    string `json:"username"`
+	Password    string `json:"password,omitempty"`
+	FromName    string `json:"fromName"`
+	From        string `json:"from"`
+	ReplyTo     string `json:"replyTo"`
+	Remember    bool   `json:"remember"`
 }
 
 func (c Config) Public() Config { c.Password = ""; return c }
@@ -30,14 +32,29 @@ func (c Config) Sender() string {
 	return c.Username
 }
 func (c Config) Validate() error {
-	if c.Host == "" || strings.ContainsAny(c.Host, " /\\\r\n\t:") {
-		return fmt.Errorf("SMTP-Server als Hostname ohne Port angeben")
+	if c.Provider != "" && c.Provider != "google" {
+		return fmt.Errorf("Unbekannter Versandanbieter")
 	}
-	if c.Port < 1 || c.Port > 65535 {
-		return fmt.Errorf("Ungültiger SMTP-Port")
-	}
-	if c.Username == "" || c.Password == "" {
-		return fmt.Errorf("SMTP-Benutzer und Passwort fehlen")
+	if c.Provider == "google" {
+		if c.GoogleGrant == "" {
+			return fmt.Errorf("Google-Konto zuerst verbinden")
+		}
+		if _, err := Address(c.Username); err != nil {
+			return fmt.Errorf("Google-Konto: %w", err)
+		}
+		if !strings.EqualFold(c.Sender(), c.Username) {
+			return fmt.Errorf("Google-Absender muss dem verbundenen Konto entsprechen; Aliase werden nicht unterstützt")
+		}
+	} else {
+		if c.Host == "" || strings.ContainsAny(c.Host, " /\\\r\n\t:") {
+			return fmt.Errorf("SMTP-Server als Hostname ohne Port angeben")
+		}
+		if c.Port < 1 || c.Port > 65535 {
+			return fmt.Errorf("Ungültiger SMTP-Port")
+		}
+		if c.Username == "" || c.Password == "" {
+			return fmt.Errorf("SMTP-Benutzer und Passwort fehlen")
+		}
 	}
 	if _, err := Address(c.Sender()); err != nil {
 		return fmt.Errorf("Absender: %w", err)

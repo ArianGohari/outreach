@@ -9,6 +9,7 @@ import (
 	"io"
 	"os"
 	"outreach/internal/diagnostics"
+	"outreach/internal/googlemail"
 	"outreach/internal/outreach"
 	"path/filepath"
 )
@@ -19,10 +20,26 @@ type App struct {
 	reporter       *diagnostics.Reporter
 	startupProblem *diagnostics.Problem
 	services       *desktopServices
+	google         *googlemail.Client
 }
 
 func NewApp(store *outreach.Store, reporters ...*diagnostics.Reporter) (*App, error) {
-	return newApp(store, outreach.SMTPSender{}, outreach.RealClock{}, reporters...)
+	g := googlemail.New(googlemail.Vault{
+		Get: func(key string) (string, error) { return nativeServices.getPassword("Outreach.Google", key) },
+		Set: func(key, value string) error { return nativeServices.setPassword("Outreach.Google", key, value) },
+		Delete: func(key string) error {
+			err := nativeServices.deletePassword("Outreach.Google", key)
+			if err == keyring.ErrNotFound {
+				return nil
+			}
+			return err
+		},
+	})
+	a, err := newApp(store, googlemail.Sender{Google: g, SMTP: outreach.SMTPSender{}}, outreach.RealClock{}, reporters...)
+	if err == nil {
+		a.google = g
+	}
+	return a, err
 }
 
 func newApp(store *outreach.Store, sender outreach.Sender, clock outreach.Clock, reporters ...*diagnostics.Reporter) (*App, error) {
@@ -205,7 +222,11 @@ func credentialID(c outreach.Config) string {
 }
 func (a *App) CheckConnection(id string, c outreach.Config) (err error) {
 	defer func() {
-		err = a.report("SMTP-Verbindung prüfen · "+id, err, c.Password, c.Username, c.Sender(), c.ReplyTo)
+		operation := "SMTP-Verbindung prüfen"
+		if c.Provider == "google" {
+			operation = "Google-Verbindung prüfen"
+		}
+		err = a.report(operation+" · "+id, err, c.Password, c.Username, c.Sender(), c.ReplyTo)
 	}()
 	if err = a.ready(); err != nil {
 		return
@@ -217,6 +238,9 @@ func (a *App) CheckConnection(id string, c outreach.Config) (err error) {
 	defer release()
 	if e := job.Session.Check(context.Background(), c); e != nil {
 		return e
+	}
+	if c.Provider == "google" {
+		return nil
 	}
 	if c.Remember {
 		if e := a.desktop().setPassword("Outreach", credentialID(c), c.Password); e != nil {
@@ -234,7 +258,7 @@ func (a *App) LoadPassword(c outreach.Config) (password string, err error) {
 	if err = a.ready(); err != nil {
 		return
 	}
-	if !c.Remember {
+	if !c.Remember || c.Provider == "google" {
 		return "", nil
 	}
 	password, e := a.desktop().getPassword("Outreach", credentialID(c))

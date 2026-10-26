@@ -11,6 +11,10 @@ Lokale Desktop-App: Apollo-CSV importieren, Textnachrichten mit Platzhaltern vor
 - Bestehendes CSS weiterverwenden. Falls eine CSS-Library nötig wird, ist UnoCSS die vereinbarte Option; nicht vorsorglich installieren.
 - Kein Postfachzugriff, kein Einlesen von Antworten oder Bounces, kein Tracking. Ein vorhandenes CSV-Feld zu Bounces auszuwerten ist kein Postfachzugriff.
 - SMTP nur mit TLS/STARTTLS. Keine automatische Signatur: Eine Signatur steht nur dann in der Mail, wenn sie im Template eingetragen wurde.
+- Google / Workspace nutzt OAuth und die Gmail-API (`gmail.send`, `openid`, `email`), andere Anbieter SMTP. Kein Postfach-Lesezugriff. Einrichtung in `GOOGLE.md`; OAuth-JSON nie einbetten oder committen.
+- Google-Konto aus der bestätigten OAuth-Identität übernehmen. Absender muss diesem Konto entsprechen; Aliase sind vorerst nicht unterstützt. Tokens bleiben im Backend: Refresh-Zugangsdaten im OS-Schlüsselbund, Access-Tokens nur im RAM. SQLite speichert eine nicht geheime Verbindungsreferenz.
+- Gmail-Sendeanfragen niemals automatisch wiederholen, auch nicht bei HTTP 401/429/5xx. Fehlende/ungültige Erfolgsbestätigung und 5xx bleiben unklar und gesperrt. Token-Erneuerung vor dem Versand ist erlaubt und verändert keine Versandfreigabe.
+- Trennen einer Google-Verbindung mit Jobstarts serialisieren und Freigaben betroffener Jobs löschen. Laufende Jobs blockieren das Trennen. Lokales Trennen widerruft keine Freigabe bei Google.
 - Die optionale Antwortadresse ist ein Reply-To-Header. Ohne sie gehen Antworten an den Absender.
 - Vorerst keine Developer-ID-Signierung, Notarisierung oder Windows-Code-Signierung. Lokale Ad-hoc-Signierung durch Wails ist erlaubt.
 
@@ -79,6 +83,7 @@ First Name,Last Name,Title,Company Name,Email,Contact Owner,Person Linkedin Url,
 | Import und Personenabgleich | `internal/outreach/csv.go`, `history.go` |
 | Templates und Beispielkontakt | `internal/outreach/template.go`, `example.go` |
 | Freigaben und SMTP-Worker | `internal/outreach/session.go`, `engine.go`, `smtp.go` |
+| Google OAuth, Token-Erneuerung und Gmail-Versand | `google.go`, `internal/googlemail/` |
 | Persistenz und Reservierungen | `internal/outreach/store.go` |
 | Diagnosedaten und Schwärzung | `internal/diagnostics/` |
 | Dashboard, Tabs, Job-Editor | `frontend/src/App.svelte`, `JobTabs.svelte`, `JobEditor.svelte` |

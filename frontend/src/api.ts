@@ -14,6 +14,8 @@ export interface Problem {
   cancelled?: boolean;
 }
 export interface Config {
+  provider?: 'google' | '';
+  googleGrant?: string;
   host: string;
   port: number;
   username: string;
@@ -99,6 +101,10 @@ export interface JobView {
   state: State;
 }
 export interface Bridge {
+  GoogleConfigured(): Promise<boolean>;
+  ImportGoogleClient(): Promise<void>;
+  ConnectGoogle(id: string): Promise<Config>;
+  DisconnectGoogle(id: string, config: Config): Promise<void>;
   GetWorkspace(): Promise<JobView[]>;
   CreateJob(name: string): Promise<JobView>;
   DiscardEmptyJob(id: string): Promise<void>;
@@ -206,7 +212,7 @@ export function canStart(
 export const statusLabel: Record<string, string> = {
   pending: 'Ausstehend',
   sending: 'Wird übertragen',
-  sent: 'An SMTP übergeben',
+  sent: 'An Versanddienst übergeben',
   failed: 'Fehlgeschlagen',
   uncertain: 'Unklar · gesperrt',
   blocked: 'Doppelversand verhindert',

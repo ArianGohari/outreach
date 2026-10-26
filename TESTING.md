@@ -40,6 +40,9 @@ For the real Keychain / Windows Credential Manager test, set `OUTREACH_OS_TESTS=
 | Credentials, cancellation, confirmation, close while sending | Desktop unit tests; actual OS credential round trip |
 | Error details, Wails serialization, log receipts, redaction, rotation and write failures | Diagnostics, desktop, component and native tests |
 | Actual Svelte → Wails → SQLite → TLS SMTP flow | Native WKWebView / WebView2 test, including errors, retry and deletion |
+| Google OAuth, PKCE/state, account identity, denied consent and secret storage | Local OAuth endpoint tests and desktop/UI tests |
+| Google refresh, revoked grants, API errors, lost acknowledgement and no retries | Concurrent token tests and local Gmail API tests |
+| Google sends and deletion retain global duplicate protection | Jobs → SQLite → local Gmail API integration test |
 
 The native test builds a separate executable with `integration,nativee2e` tags and the race detector. It uses the production window options and bindings. File-picker and confirmation results are scripted; the WebView, bridge, file reads, validation, database, worker and SMTP transport are real. Test hooks and the SMTP fixture are excluded from release builds.
 
@@ -56,3 +59,5 @@ These still require manual testing of a downloaded build on a clean macOS ARM ma
 - Relaunch after forced termination and a normal OS shutdown; verify drafts, history and manual reapproval.
 
 Do not mark these checks as passed from a green CI run. Never use a real contact list or delete the user's database for testing.
+
+Google's actual consent screen, Workspace policy and production delivery need separate verification. The opt-in `google-check` command in [GOOGLE.md](GOOGLE.md) checks real authorization without sending mail; automated suites never contact Google.

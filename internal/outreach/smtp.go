@@ -42,6 +42,9 @@ type SMTPSender struct {
 }
 
 func (sender SMTPSender) connect(ctx context.Context, c Config) (*smtp.Client, net.Conn, error) {
+	if c.Provider != "" {
+		return nil, nil, fmt.Errorf("Google-Konten benötigen den Google-Versandweg")
+	}
 	if e := c.Validate(); e != nil {
 		return nil, nil, e
 	}

@@ -57,7 +57,7 @@ func SMTPFailure(step string, c Config, cause error, uncertain bool, private ...
 		code = "SMTP_CERTIFICATE_INVALID"
 		hint = "Systemzeit und Gültigkeit des Serverzertifikats prüfen. Zertifikatsprüfung bleibt aktiv."
 	case step == "AUTH":
-		hint = "Benutzername, Passwort bzw. App-Passwort und aktivierten SMTP-Zugriff prüfen. Die App verwendet SMTP AUTH PLAIN über TLS; OAuth wird nicht unterstützt."
+		hint = "Benutzername, App-Passwort und SMTP-Zugriff prüfen. Für Google Workspace ohne App-Passwort den Anbieter Google wählen."
 	case step == "MAIL FROM":
 		hint = "Die Absenderadresse muss für dieses SMTP-Konto freigegeben sein. Absenderadresse oder Alias beim Anbieter prüfen."
 	case step == "RCPT TO":

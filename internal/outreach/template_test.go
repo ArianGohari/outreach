@@ -1,6 +1,7 @@
 package outreach
 
 import (
+	"context"
 	"strings"
 	"testing"
 )
@@ -114,6 +115,26 @@ func TestSMTPConfigurationValidation(t *testing.T) {
 	}
 	if c.Sender() != c.From {
 		t.Fatal("explicit sender ignored")
+	}
+}
+
+func TestGoogleConfigurationRejectsMissingGrantAliasesAndUnknownProviders(t *testing.T) {
+	c := Config{Provider: "google", GoogleGrant: "opaque-grant", Username: "sender@example.org"}
+	if err := c.Validate(); err != nil {
+		t.Fatal(err)
+	}
+	for _, change := range []func(*Config){
+		func(c *Config) { c.GoogleGrant = "" }, func(c *Config) { c.From = "other@example.org" },
+		func(c *Config) { c.Username = "invalid" }, func(c *Config) { c.Provider = "unknown" },
+	} {
+		bad := c
+		change(&bad)
+		if err := bad.Validate(); err == nil {
+			t.Fatal("unsafe Google config accepted")
+		}
+	}
+	if _, _, err := (SMTPSender{}).connect(context.Background(), c); err == nil {
+		t.Fatal("Google grant used for SMTP")
 	}
 }
 func TestPlanAndMessageIDsAreStable(t *testing.T) {

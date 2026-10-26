@@ -1,6 +1,6 @@
 # Outreach
 
-Desktop app for personalized email outreach from Apollo CSV exports. Templates, previews, test emails and parallel jobs across SMTP accounts. Built with Go, Wails and Svelte.
+Desktop app for personalized email outreach from Apollo CSV exports. Templates, previews, test emails and parallel jobs across SMTP and Google accounts. Built with Go, Wails and Svelte.
 
 **[Download for macOS ARM](https://github.com/ArianGohari/outreach/releases/latest/download/Outreach-macos-arm64.zip)** · **[Download for Windows x64](https://github.com/ArianGohari/outreach/releases/latest/download/Outreach-windows-x64.zip)**
 
@@ -17,6 +17,8 @@ wails dev
 ```
 
 Read [AGENTS.md](AGENTS.md) for architecture, product decisions and sending safeguards. The current UI code is the design reference.
+
+Google Workspace without app passwords: [OAuth setup](GOOGLE.md).
 
 ## Test and build
 

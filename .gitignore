@@ -22,6 +22,9 @@
 *.jsonl
 .env
 .env.*
+client_secret*.json
+credentials.json
+token.json
 !.env.example
 /*.csv
 !/TestContacts.csv

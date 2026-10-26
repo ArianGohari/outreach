@@ -79,6 +79,21 @@ test.beforeEach(async ({ page }) => {
       state: state(j),
     });
     const api = {
+      GoogleConfigured: async () => true,
+      ImportGoogleClient: async () => {},
+      ConnectGoogle: async () => ({
+        provider: 'google',
+        googleGrant: 'test-grant',
+        host: '',
+        port: 587,
+        username: 'google@example.org',
+        password: '',
+        from: '',
+        fromName: '',
+        replyTo: '',
+        remember: false,
+      }),
+      DisconnectGoogle: async () => {},
       GetWorkspace: async () => Object.values(jobs).map(view),
       DiscardEmptyJob: async (id: string) => {
         if (!view(jobs[id]).empty) throw new Error('Not empty');
@@ -307,6 +322,28 @@ test('template guide and Jane Doe preview work without import or SMTP', async ({
   await expect(
     page.getByRole('button', { name: 'Testmail senden' }),
   ).toBeDisabled();
+  expect(await page.evaluate(() => (window as any).__testSendCount())).toBe(0);
+});
+
+test('Google setup hides password fields and requires a new connection check', async ({
+  page,
+}) => {
+  await page.getByRole('combobox', { name: 'Versand über', exact: true }).selectOption('google');
+  await expect(page.getByLabel('SMTP-Server')).toHaveCount(0);
+  await expect(page.getByLabel('Passwort', { exact: true })).toHaveCount(0);
+  await page.getByRole('button', { name: 'Mit Google verbinden' }).click();
+  await expect(
+    page.getByText('google@example.org', { exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole('button', { name: 'Senden', exact: true }),
+  ).toBeDisabled();
+  await page.getByRole('button', { name: 'Verbindung prüfen' }).click();
+  await expect(page.getByText('Verbunden · Google')).toBeVisible();
+  await page.getByRole('combobox', { name: 'Versand über', exact: true }).selectOption('');
+  await expect(page.getByLabel('Benutzer', { exact: true })).toHaveValue('');
+  await expect(page.getByLabel('Passwort', { exact: true })).toHaveValue('');
+  await expect(page.getByText('Verbunden · Google')).toHaveCount(0);
   expect(await page.evaluate(() => (window as any).__testSendCount())).toBe(0);
 });
 

@@ -47,6 +47,10 @@ const plan = {
 let bridge: Bridge;
 beforeEach(() => {
   bridge = {
+    GoogleConfigured: vi.fn().mockResolvedValue(false),
+    ImportGoogleClient: vi.fn().mockResolvedValue(undefined),
+    ConnectGoogle: vi.fn(),
+    DisconnectGoogle: vi.fn().mockResolvedValue(undefined),
     GetWorkspace: vi.fn().mockResolvedValue([]),
     DiscardEmptyJob: vi.fn().mockResolvedValue(undefined),
     DeleteJob: vi.fn().mockResolvedValue(undefined),
@@ -468,5 +472,112 @@ describe('error reporting', () => {
     expect(alert.textContent).toContain('disk full');
     expect(bridge.Preview).not.toHaveBeenCalled();
     expect(bridge.ReportClientError).toHaveBeenCalled();
+  });
+});
+
+describe('Google account setup', () => {
+  it('imports a client, connects the verified account and keeps sending locked', async () => {
+    vi.mocked(bridge.ConnectGoogle).mockResolvedValue({
+      provider: 'google',
+      googleGrant: 'opaque-reference',
+      username: 'google@example.org',
+      host: '',
+      port: 587,
+      password: '',
+      from: '',
+      fromName: '',
+      replyTo: '',
+      remember: false,
+    });
+    await renderEditor();
+    const provider = screen.getByLabelText('Versand über');
+    await waitFor(() =>
+      expect((provider as HTMLSelectElement).disabled).toBe(false),
+    );
+    await fireEvent.change(provider, { target: { value: 'google' } });
+    const login = await screen.findByRole('button', {
+      name: 'Mit Google verbinden',
+    });
+    expect((login as HTMLButtonElement).disabled).toBe(true);
+    expect(screen.queryByLabelText('Passwort')).toBeNull();
+    const importClient = screen.getByRole('button', {
+      name: 'OAuth-JSON auswählen',
+    });
+    await waitFor(() =>
+      expect((importClient as HTMLButtonElement).disabled).toBe(false),
+    );
+    await fireEvent.click(importClient);
+    await waitFor(() =>
+      expect((login as HTMLButtonElement).disabled).toBe(false),
+    );
+    await fireEvent.click(login);
+    await screen.findByText('google@example.org');
+    expect(bridge.ConnectGoogle).toHaveBeenCalledWith('job-1');
+    expect(
+      (screen.getByRole('button', { name: 'Senden' }) as HTMLButtonElement)
+        .disabled,
+    ).toBe(true);
+    await fireEvent.click(
+      screen.getByRole('button', { name: 'Verbindung prüfen' }),
+    );
+    await screen.findByText('Verbunden · Google');
+    expect(bridge.CheckConnection).toHaveBeenCalledWith(
+      'job-1',
+      expect.objectContaining({
+        provider: 'google',
+        googleGrant: 'opaque-reference',
+        password: '',
+      }),
+    );
+    expect(bridge.SendTest).not.toHaveBeenCalled();
+    await fireEvent.click(
+      screen.getByRole('button', { name: 'Google-Verbindung entfernen' }),
+    );
+    await waitFor(() =>
+      expect(screen.queryByText('google@example.org')).toBeNull(),
+    );
+    expect(bridge.DisconnectGoogle).toHaveBeenCalledWith(
+      'job-1',
+      expect.objectContaining({ googleGrant: 'opaque-reference' }),
+    );
+  });
+  it('shows an admin policy refusal without enabling sending', async () => {
+    vi.mocked(bridge.GoogleConfigured).mockResolvedValue(true);
+    vi.mocked(bridge.ConnectGoogle).mockRejectedValue(
+      new Error(
+        JSON.stringify({
+          code: 'GOOGLE_POLICY',
+          message: 'Google blockiert die Anmeldung',
+          details: 'Workspace-Richtlinie',
+          hint: 'Admin-Freigabe erforderlich.',
+          logged: true,
+          id: 'google-1',
+        }),
+      ),
+    );
+    await renderEditor();
+    const provider = screen.getByLabelText('Versand über');
+    await waitFor(() =>
+      expect((provider as HTMLSelectElement).disabled).toBe(false),
+    );
+    await fireEvent.change(provider, { target: { value: 'google' } });
+    const login = await screen.findByRole('button', {
+      name: 'Mit Google verbinden',
+    });
+    await waitFor(() =>
+      expect((login as HTMLButtonElement).disabled).toBe(false),
+    );
+    await fireEvent.click(login);
+    expect((await screen.findByRole('alert')).textContent).toContain(
+      'Admin-Freigabe erforderlich',
+    );
+    expect(
+      (
+        screen.getByRole('button', {
+          name: 'Testmail senden',
+        }) as HTMLButtonElement
+      ).disabled,
+    ).toBe(true);
+    expect(bridge.Start).not.toHaveBeenCalled();
   });
 });

@@ -319,6 +319,34 @@ func (j *Jobs) Close() {
 	}
 }
 
+// Serialize removal with starts, including a start that occurs while confirmation is open.
+func (j *Jobs) RevokeGoogleGrant(grant string, remove func() error) error {
+	j.startMu.Lock()
+	defer j.startMu.Unlock()
+	views, err := j.Views()
+	if err != nil {
+		return err
+	}
+	for _, v := range views {
+		if v.State.Running && v.State.Plan != nil && v.State.Plan.Request.Config.GoogleGrant == grant {
+			return fmt.Errorf("Jobs dieses Google-Kontos zuerst stoppen")
+		}
+	}
+	if err = remove(); err != nil {
+		return err
+	}
+	for _, v := range views {
+		if v.Draft.Request.Config.GoogleGrant == grant || (v.State.Plan != nil && v.State.Plan.Request.Config.GoogleGrant == grant) {
+			job, err := j.Get(v.ID)
+			if err != nil {
+				return err
+			}
+			job.Session.ClearApproval()
+		}
+	}
+	return nil
+}
+
 func blankDraft() Draft {
 	return Draft{Request: Request{Config: Config{Port: 587}, Schedule: Schedule{Seconds: 30, BatchSize: 50, BatchMinutes: 1440}}, Report: Report{OnlyVerified: true, Headers: []string{}, Contacts: []Contact{}, Issues: []Issue{}}}
 }

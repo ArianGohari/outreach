@@ -34,6 +34,46 @@
   let jobName = $state('');
   let view = $state<'edit' | 'progress'>('edit');
   let saveStatus = $state('');
+  let googleConfigured = $state(false);
+  async function selectProvider(provider: string) {
+    config = {
+      ...config,
+      provider: provider === 'google' ? 'google' : '',
+      googleGrant: '',
+      username: '',
+      password: '',
+      from: '',
+      remember: false,
+    };
+    invalidate(true);
+    if (provider === 'google')
+      await action(async () => {
+        googleConfigured = await desktopBackend().GoogleConfigured();
+      });
+  }
+  async function googleLogin() {
+    await action(async () => {
+      const account = await desktopBackend().ConnectGoogle(job.id);
+      config = {
+        ...config,
+        ...account,
+        host: '',
+        port: 587,
+        password: '',
+        remember: false,
+        from: '',
+      };
+      testTo = config.username;
+      invalidate(true);
+    });
+  }
+  async function googleDisconnect() {
+    await action(async () => {
+      await desktopBackend().DisconnectGoogle(job.id, { ...config });
+      config = { ...config, googleGrant: '', username: '', from: '' };
+      invalidate(true);
+    });
+  }
   let saveTimer: ReturnType<typeof setTimeout> | undefined;
   let dirty = false;
   let initialized = false;
@@ -77,7 +117,11 @@
     if (!source) return;
     config = { ...source.draft.request.config, password: '' };
     invalidate(true);
-    if (config.remember)
+    if (config.provider === 'google')
+      await action(async () => {
+        googleConfigured = await desktopBackend().GoogleConfigured();
+      });
+    if (config.remember && config.provider !== 'google')
       await action(async () => {
         config.password = await backend().LoadPassword({ ...config });
       });
@@ -331,8 +375,10 @@
         notice = 'Zum Fortsetzen Verbindung und Testmail erneut prüfen.';
       }
       testTo = config.from || config.username;
-      if (config.remember)
+      if (config.remember && config.provider !== 'google')
         config.password = await backend().LoadPassword({ ...config });
+      if (config.provider === 'google')
+        googleConfigured = await desktopBackend().GoogleConfigured();
       initialized = true;
     });
     const off = window.runtime?.EventsOn('outreach:changed', () => {
@@ -399,56 +445,102 @@
           </select></label
         >
       {/if}
+      <label class="account-choice"
+        ><span>Versand über</span><select
+          value={config.provider || ''}
+          disabled={locked}
+          onchange={(e) => void selectProvider(e.currentTarget.value)}
+        >
+          <option value="">SMTP</option><option value="google"
+            >Google / Workspace</option
+          >
+        </select></label
+      >
+      {#if config.provider === 'google'}
+        <div class="actions">
+          <button
+            class="plain"
+            disabled={locked}
+            onclick={() =>
+              action(async () => {
+                await desktopBackend().ImportGoogleClient();
+                googleConfigured = true;
+              })}
+            >{googleConfigured
+              ? 'OAuth-JSON ändern'
+              : 'OAuth-JSON auswählen'}</button
+          >
+          <button disabled={locked || !googleConfigured} onclick={googleLogin}
+            >Mit Google verbinden</button
+          >
+          {#if config.googleGrant}<button
+              class="plain"
+              disabled={locked}
+              onclick={googleDisconnect}>Google-Verbindung entfernen</button
+            >{/if}
+        </div>
+        <p class="hint">
+          {config.googleGrant
+            ? config.username
+            : 'Google-Anmeldung im Browser. Nur E-Mails senden.'}
+        </p>
+        {#if busy}<p class="hint">
+            Google-Anmeldung gegebenenfalls im Browser abschließen.
+          </p>{/if}
+      {/if}
       <fieldset disabled={locked}>
         <div class="grid">
-          <label class="four"
-            ><span>SMTP-Server</span><input
-              bind:value={config.host}
-              oninput={() => invalidate(true)}
-              placeholder="smtp.example.com"
-              autocomplete="off"
-              spellcheck="false"
-            /></label
-          >
-          <label class="two"
-            ><span>Port</span><input
-              type="number"
-              min="1"
-              max="65535"
-              bind:value={config.port}
-              oninput={() => invalidate(true)}
-            /></label
-          >
-          <label class="three"
-            ><span>Benutzer</span><input
-              bind:value={config.username}
-              oninput={() => invalidate(true)}
-              autocomplete="username"
-              spellcheck="false"
-            /></label
-          >
-          <label class="three"
-            ><span>Passwort</span><input
-              type="password"
-              bind:value={config.password}
-              oninput={() => invalidate(true)}
-              autocomplete="current-password"
-            /></label
-          >
+          {#if config.provider !== 'google'}
+            <label class="four"
+              ><span>SMTP-Server</span><input
+                bind:value={config.host}
+                oninput={() => invalidate(true)}
+                placeholder="smtp.example.com"
+                autocomplete="off"
+                spellcheck="false"
+              /></label
+            >
+            <label class="two"
+              ><span>Port</span><input
+                type="number"
+                min="1"
+                max="65535"
+                bind:value={config.port}
+                oninput={() => invalidate(true)}
+              /></label
+            >
+            <label class="three"
+              ><span>Benutzer</span><input
+                bind:value={config.username}
+                oninput={() => invalidate(true)}
+                autocomplete="username"
+                spellcheck="false"
+              /></label
+            >
+            <label class="three"
+              ><span>Passwort</span><input
+                type="password"
+                bind:value={config.password}
+                oninput={() => invalidate(true)}
+                autocomplete="current-password"
+              /></label
+            >
+          {/if}
           <label class="three"
             ><span>Absendername</span><input
               bind:value={config.fromName}
               oninput={() => invalidate(true)}
             /></label
           >
-          <label class="three"
-            ><span>Absenderadresse</span><input
-              type="email"
-              bind:value={config.from}
-              oninput={() => invalidate(true)}
-              placeholder="Leer = Benutzer"
-            /></label
-          >
+          {#if config.provider !== 'google'}<label class="three"
+              ><span>Absenderadresse</span><input
+                type="email"
+                bind:value={config.from}
+                oninput={() => invalidate(true)}
+                placeholder="Leer = Benutzer"
+              /></label
+            >
+          {/if}
           <label class="full"
             ><span>Antwortadresse (optional)</span><input
               type="email"
@@ -458,17 +550,21 @@
             /></label
           >
         </div>
-        <label class="check remember"
-          ><input
-            type="checkbox"
-            bind:checked={config.remember}
-            onchange={() => invalidate(true)}
-          />Passwort im Betriebssystem-Schlüsselbund speichern</label
-        >
+        {#if config.provider !== 'google'}<label class="check remember"
+            ><input
+              type="checkbox"
+              bind:checked={config.remember}
+              onchange={() => invalidate(true)}
+            />Passwort im Betriebssystem-Schlüsselbund speichern</label
+          >{/if}
       </fieldset>
       <div class="actions">
         <button disabled={locked} onclick={connect}>Verbindung prüfen</button
-        >{#if connected}<span class="ok small">Verbunden · TLS</span>{/if}
+        >{#if connected}<span class="ok small"
+            >{config.provider === 'google'
+              ? 'Verbunden · Google'
+              : 'Verbunden · TLS'}</span
+          >{/if}
       </div>
       <div class="actions">
         <button
@@ -477,7 +573,9 @@
           onclick={() => action(saveDraft)}>Entwurf speichern</button
         ><span class="hint">{saveStatus}</span>
       </div>
-      <p class="hint">Port 465: TLS · andere Ports: STARTTLS.</p>
+      {#if config.provider !== 'google'}<p class="hint">
+          Port 465: TLS · andere Ports: STARTTLS.
+        </p>{/if}
     </section>
     <section aria-labelledby={uid + '-contacts-heading'}>
       <h2 id={uid + '-contacts-heading'}><b>02</b>Kontakte</h2>
@@ -633,7 +731,8 @@
           disabled={locked || !connected || !contactsChecked || !testTo}
           onclick={test}>Testmail senden</button
         >{#if tested}<span class="ok small"
-            >Testmail an SMTP übergeben · Posteingang prüfen</span
+            >Testmail an {config.provider === 'google' ? 'Google' : 'SMTP'} übergeben
+            · Posteingang prüfen</span
           >{/if}
       </div>
     </section>
@@ -709,7 +808,7 @@
               >{deliveryState.running
                 ? 'Versand aktiv'
                 : 'Versand pausiert / beendet'} ·
-              <span class="ok">{sent} an SMTP übergeben</span></span
+              <span class="ok">{sent} übergeben</span></span
             >
           </div>
           <progress

@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"embed"
+	"github.com/pkg/browser"
 	"github.com/wailsapp/wails/v2/pkg/options"
 	"github.com/wailsapp/wails/v2/pkg/options/assetserver"
 	"github.com/wailsapp/wails/v2/pkg/runtime"
@@ -20,12 +21,14 @@ type desktopServices struct {
 	getPassword    func(string, string) (string, error)
 	deletePassword func(string, string) error
 	emit           func(context.Context, string, ...interface{})
+	openBrowser    func(string) error
 }
 
 var nativeServices = desktopServices{
 	openFile: runtime.OpenFileDialog, message: runtime.MessageDialog,
 	setPassword: keyring.Set, getPassword: keyring.Get, deletePassword: keyring.Delete,
-	emit: runtime.EventsEmit,
+	emit:        runtime.EventsEmit,
+	openBrowser: browser.OpenURL,
 }
 
 func (a *App) desktop() *desktopServices {

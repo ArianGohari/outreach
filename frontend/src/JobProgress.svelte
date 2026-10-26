@@ -33,7 +33,7 @@
     aria-label="Versandfortschritt"
   ></progress>
   <div class="counts">
-    {#each [{ n: counts.sent, label: 'An SMTP übergeben', kind: 'ok' }, { n: counts.pending, label: 'Offen', kind: '' }, { n: counts.failed, label: 'Fehlgeschlagen', kind: 'error' }, { n: counts.blocked, label: 'Duplikate gesperrt', kind: '' }, { n: counts.uncertain, label: 'Unklar', kind: 'error' }] as item}
+    {#each [{ n: counts.sent, label: 'Übergeben', kind: 'ok' }, { n: counts.pending, label: 'Offen', kind: '' }, { n: counts.failed, label: 'Fehlgeschlagen', kind: 'error' }, { n: counts.blocked, label: 'Duplikate gesperrt', kind: '' }, { n: counts.uncertain, label: 'Unklar', kind: 'error' }] as item}
       <div>
         <span class={'number ' + item.kind}>{item.n}</span><span class="hint"
           >{item.label}</span
