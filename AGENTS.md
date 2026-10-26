@@ -51,7 +51,7 @@ Vereinbarter Beispielexport:
 First Name,Last Name,Title,Company Name,Email,Contact Owner,Person Linkedin Url,City
 ```
 
-`Testkontakte.csv` enthält nur Kopfzeilen für manuelle Tests. Reale Apollo-Exports wie `Master.csv` gehören nicht ins Repository.
+`TestContacts.csv` enthält nur Kopfzeilen für manuelle Tests. Reale Apollo-Exports wie `Master.csv` gehören nicht ins Repository.
 
 - Tags: `{{Spaltenname}}`, Ersatzwerte: `{{Spaltenname|Ersatz}}`. `{{Company}}` ist ein Alias für `{{Company Name}}`.
 - Leere Werte ohne Ersatz blockieren Versand. Eine fehlende Spalte bleibt auch mit Ersatzwert ungültig. Keine Schleifen oder Bedingungen hinzufügen, ohne den Umfang abzustimmen.

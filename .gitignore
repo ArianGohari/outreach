@@ -24,7 +24,7 @@
 .env.*
 !.env.example
 /*.csv
-!/Testkontakte.csv
+!/TestContacts.csv
 Master.csv
 
 # Historical design and unused Wails scaffolding
