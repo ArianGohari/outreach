@@ -49,8 +49,8 @@ Der vorhandene Schutz ist lokal und gilt für identischen Nachrichteninhalt. Ge�
 - Kontakte immer deduplizieren, keine "Ohne Duplikate"-Checkbox. "Nur verifizierte" bleibt ein echter Filter. Fehlt der Verifizierungsstatus, muss er für den Import ausdrücklich deaktiviert werden.
 - Kein festes Dropdown "E-Mail-Spalte"; Apollo `Email` ist die Empfängerspalte. Die Kontaktvorschau zeigt alle importierten Spalten.
 - UI-Texte auf ihren Nutzen prüfen. Überflüssige Einleitungen entfernen; hilfreiche Hinweise kürzen. Aussagekräftige Fehler, Versandgrenzen und die Template-Anleitung erhalten.
-- Fenster beim Start an die logische Bildschirmgröße anpassen; normale Fenstergröße beim bestätigten Beenden in `meta.window_size` speichern. Maximierte/Vollbild-Größen nicht als normale Größe speichern. Dashboard und Kontakte bis 1120 px Inhaltsbreite, Formularabschnitte bis 760 px.
-- Im Job-Editor Tab-Leiste, Titel, Hinweise/Fehler und Formular-/Fortschrittsabschnitte seitlich ausrichten (max. 760 px). Nur die Kontakttabelle darf breiter sein. Inline-Status neben Buttons ohne Block-Hinweis-Margins darstellen.
+- Fenster beim Start an die logische Bildschirmgröße anpassen; normale Fenstergröße beim bestätigten Beenden in `meta.window_size` speichern. Maximierte/Vollbild-Größen nicht als normale Größe speichern. Dashboard und Jobs verwenden dieselbe Inhaltsbreite: maximal 960 px; in kleineren Fenstern flexibel.
+- Tab-Leiste, Dashboard, Job-Titel, Hinweise/Fehler, Formulare, Fortschritt und Kontakttabelle an denselben seitlichen Kanten ausrichten. Tabellen bei Bedarf intern scrollen, nicht aus der gemeinsamen Inhaltsbreite herausziehen. Inline-Status neben Buttons ohne Block-Hinweis-Margins darstellen.
 - Tastaturbedienung, Fokus, Labels und schmale Fenster erhalten. Kein Layout darf horizontal aus dem Fenster laufen; breite Tabellen dürfen intern scrollen.
 
 ## CSV und Template-Sprache

@@ -826,18 +826,6 @@
 </div>
 
 <style>
-  .job-editor > header,
-  .job-editor > :global(.feedback),
-  .job-editor :global(section) {
-    max-width: 760px;
-    margin-inline: auto;
-  }
-  .contacts-section .table-wrap {
-    width: var(--workspace-content-width, 100%);
-    position: relative;
-    left: 50%;
-    transform: translateX(-50%);
-  }
   .job-name,
   .account-choice {
     margin-bottom: 24px;

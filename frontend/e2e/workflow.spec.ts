@@ -314,8 +314,9 @@ test('layout fits supported window sizes and displays imported text literally', 
       .boundingBox();
     expect(contacts).not.toBeNull();
     expect(message).not.toBeNull();
-    expect(message!.width).toBeLessThanOrEqual(760);
-    if (width >= 1440) expect(contacts!.width).toBeGreaterThan(1000);
+    expect(message!.width).toBeLessThanOrEqual(960);
+    expect(Math.abs(contacts!.width - message!.width)).toBeLessThan(1);
+    if (width >= 1440) expect(contacts!.width).toBe(960);
     expect(
       await page.evaluate(
         () => document.documentElement.scrollWidth <= innerWidth,
@@ -614,7 +615,7 @@ test('deleting a configured job requires confirmation and removes its tab', asyn
   await expect(page.getByRole('tab', { name: /Entfernen/ })).toHaveCount(0);
 });
 
-test('tabs, notices and action statuses align with the editor', async ({
+test('dashboard, jobs, tabs, notices and action statuses share alignment', async ({
   page,
 }) => {
   await page.getByLabel('Job name', { exact: true }).fill('Alignment');
@@ -667,5 +668,17 @@ test('tabs, notices and action statuses align with the editor', async ({
       );
     expect(offsets.length).toBeGreaterThanOrEqual(2);
     for (const offset of offsets) expect(offset).toBeLessThan(1);
+    await page.getByRole('tab', { name: /^Dashboard/ }).click();
+    for (const locator of [
+      page.locator('.job-tabs'),
+      page.locator('#panel-overview > header'),
+      page.locator('.dashboard-list').first(),
+    ]) {
+      const box = await locator.boundingBox();
+      expect(box).not.toBeNull();
+      expect(Math.abs(box!.x - section!.x)).toBeLessThan(1);
+      expect(Math.abs(box!.width - section!.width)).toBeLessThan(1);
+    }
+    await page.getByRole('tab', { name: /^Alignment/ }).click();
   }
 });
