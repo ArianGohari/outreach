@@ -7,14 +7,14 @@ Google accounts use the Gmail API with `gmail.send`, plus `openid` and `email` t
 1. Enable **Gmail API** in your Google Cloud project.
 2. Configure Google Auth Platform. For initial testing, use **External / Testing** and add each sender as a test user.
 3. Create an OAuth client of type **Desktop app** and download its JSON.
-4. In a job, select **Google / Workspace**, choose **OAuth-JSON auswählen**, then **Mit Google verbinden**.
+4. In a job, select **Google / Workspace**, choose **Select OAuth JSON**, then **Connect Google**.
 5. Complete consent in your system browser. Back in Outreach, check the connection, import contacts, preview and send a test email before starting outreach.
 
-Each account signs in separately. Jobs can reuse a connected account through **Absender-Konto übernehmen**. The sender must match the Google account; aliases are not supported yet. Reply-To remains optional.
+Each account signs in separately. Jobs can reuse a connected account through **Use existing account**. The sender must match the Google account; aliases are not supported yet. Reply-To remains optional.
 
 The OAuth client and refresh credentials are stored in Keychain / Windows Credential Manager. Access tokens stay in memory. SQLite contains only the account address and an opaque connection reference. Client JSON and tokens must not be committed or included in releases.
 
-**Google-Verbindung entfernen** deletes the local credential and clears approval for jobs sharing that connection. Running jobs must stop first. This does not revoke consent at Google; remove Outreach from your Google Account's connections to revoke that consent too.
+**Remove Google connection** deletes the local credential and clears approval for jobs sharing that connection. Running jobs must stop first. This does not revoke consent at Google; remove Outreach from your Google Account's connections to revoke that consent too.
 
 ## First login check without sending
 

@@ -21,19 +21,19 @@
 </script>
 
 <section aria-labelledby={uid + '-job-progress-heading'}>
-  <h2 id={uid + '-job-progress-heading'}><b>01</b>Fortschritt</h2>
+  <h2 id={uid + '-job-progress-heading'}><b>01</b>Progress</h2>
   <div class="progress-heading">
     <span class="number">{finished} / {state.deliveries.length}</span><span
-      class="small">{state.running ? 'Job läuft' : 'Pausiert / beendet'}</span
+      class="small">{state.running ? 'Job running' : 'Paused / Finished'}</span
     >
   </div>
   <progress
     value={finished}
     max={Math.max(state.deliveries.length, 1)}
-    aria-label="Versandfortschritt"
+    aria-label="Sending progress"
   ></progress>
   <div class="counts">
-    {#each [{ n: counts.sent, label: 'Übergeben', kind: 'ok' }, { n: counts.pending, label: 'Offen', kind: '' }, { n: counts.failed, label: 'Fehlgeschlagen', kind: 'error' }, { n: counts.blocked, label: 'Duplikate gesperrt', kind: '' }, { n: counts.uncertain, label: 'Unklar', kind: 'error' }] as item}
+    {#each [{ n: counts.sent, label: 'Accepted', kind: 'ok' }, { n: counts.pending, label: 'Pending', kind: '' }, { n: counts.failed, label: 'Failed', kind: 'error' }, { n: counts.blocked, label: 'Duplicates blocked', kind: '' }, { n: counts.uncertain, label: 'Uncertain', kind: 'error' }] as item}
       <div>
         <span class={'number ' + item.kind}>{item.n}</span><span class="hint"
           >{item.label}</span
@@ -42,25 +42,24 @@
     {/each}
   </div>
   {#if state.running && state.nextAt}<p class="hint">
-      Nächste Freigabe frühestens {new Date(state.nextAt).toLocaleString(
-        'de-DE',
+      Next send no earlier than {new Date(state.nextAt).toLocaleString(
+        'en-US',
       )}.
     </p>{/if}
   <div class="actions">
-    <button disabled={busy || !state.running} onclick={onStop}>Stoppen</button>
+    <button disabled={busy || !state.running} onclick={onStop}>Stop</button>
     <button class="plain" disabled={busy || state.running} onclick={onEdit}
-      >Job bearbeiten & fortsetzen</button
+      >Edit & resume job</button
     >
   </div>
   {#if counts.uncertain}<p class="hint warning">
-      {counts.uncertain} unklar: möglicherweise bereits übertragen. Erneuter Versand
-      gesperrt.
+      {counts.uncertain} uncertain: may already have been sent. Sending again is blocked.
     </p>{/if}
 </section>
 <section aria-labelledby={uid + '-job-log-heading'}>
-  <h2 id={uid + '-job-log-heading'}><b>02</b>Protokoll</h2>
+  <h2 id={uid + '-job-log-heading'}><b>02</b>Log</h2>
   {#if !state.deliveries.some((d) => d.status !== 'pending')}<p class="hint">
-      Noch keine Übertragungen.
+      No transfers yet.
     </p>{/if}
   <div class="log">
     {#each state.deliveries
@@ -70,7 +69,7 @@
       <div class="log-row">
         <span class="muted"
           >{d.updated
-            ? new Date(d.updated).toLocaleTimeString('de-DE')
+            ? new Date(d.updated).toLocaleTimeString('en-US')
             : ''}</span
         ><span>{d.to}</span><span
           class:ok={d.status === 'sent'}
@@ -87,20 +86,20 @@
 </section>
 {#if state.plan}
   <section aria-labelledby={uid + '-job-message-heading'}>
-    <h2 id={uid + '-job-message-heading'}><b>03</b>Nachricht</h2>
+    <h2 id={uid + '-job-message-heading'}><b>03</b>Message</h2>
     <dl>
-      <dt>Absender</dt>
+      <dt>Sender</dt>
       <dd>
         {state.plan.request.config.from || state.plan.request.config.username}
       </dd>
-      <dt>Betreff</dt>
+      <dt>Subject</dt>
       <dd>{state.plan.request.subject}</dd>
     </dl>
     <p class="message">{state.plan.request.body}</p>
     <p class="hint schedule">
-      {state.plan.request.schedule.seconds} Sek. Pause · Batches à {state.plan
+      {state.plan.request.schedule.seconds} sec. pause · Batch size {state.plan
         .request.schedule.batchSize} · {state.plan.request.schedule
-        .batchMinutes / 60} Stunden Batchpause
+        .batchMinutes / 60} hours between batches
     </p>
   </section>
 {/if}

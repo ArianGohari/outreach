@@ -85,10 +85,10 @@
     } catch {
       error = {
         code: 'UI_RUNTIME',
-        message: 'Übersicht konnte nicht geladen werden',
+        message: 'Could not load dashboard',
         details: errorText(value),
         logged: false,
-        logIssue: 'Desktop-Verbindung nicht verfügbar.',
+        logIssue: 'Desktop connection unavailable.',
       };
     }
   }
@@ -107,7 +107,7 @@
     error = null;
     try {
       for (const editor of Object.values(editors)) await editor?.flushDraft();
-      const job = await backend().CreateJob('Neuer Job');
+      const job = await backend().CreateJob('New job');
       jobs = [...jobs.filter((j) => j.id !== job.id), job];
       openJob(job.id);
     } catch (e) {
@@ -251,9 +251,9 @@
     <section aria-labelledby="jobs-heading">
       <h2 id="jobs-heading"><b>01</b>Jobs</h2>
       {#if busy && !dashboardJobs.length}<p class="muted" role="status">
-          Jobs werden geladen …
+          Loading jobs...
         </p>
-      {:else if !dashboardJobs.length}<p class="muted">Keine Jobs.</p>
+      {:else if !dashboardJobs.length}<p class="muted">No jobs yet.</p>
       {:else}<div class="dashboard-list">
           {#each dashboardJobs as job (job.id)}
             {@const counts = jobCounts(job)}
@@ -263,7 +263,7 @@
                   ><span>{job.name}</span><small
                     >{job.draft.request.config.from ||
                       job.draft.request.config.username ||
-                      'Absender noch nicht eingerichtet'}</small
+                      'Sender not configured'}</small
                   ></span
                 >
                 <small
@@ -274,8 +274,8 @@
                     job,
                   )}{#if job.state.running && job.state.nextAt && new Date(job.state.nextAt).getTime() > Date.now()}<span
                       class="next-time"
-                      >bis {new Date(job.state.nextAt).toLocaleTimeString(
-                        'de-DE',
+                      >until {new Date(job.state.nextAt).toLocaleTimeString(
+                        'en-US',
                       )}</span
                     >{/if}</small
                 >
@@ -283,44 +283,41 @@
                   >{counts.done} / {counts.total}<progress
                     value={counts.done}
                     max={Math.max(counts.total, 1)}
-                    aria-label={'Fortschritt ' + job.name}
+                    aria-label={'Progress ' + job.name}
                   ></progress></span
                 >
               </button>
               <div class="row-actions">
                 {#if deleting === job.id}
                   <span class="small"
-                    >Job löschen? Versandhistorie bleibt erhalten.</span
+                    >Delete job? Sending history will be kept.</span
                   >
                   <button
                     class="plain"
                     id={'cancel-delete-' + job.id}
                     disabled={busy}
                     onclick={() => confirmDeletion(job.id, false)}
-                    >Abbrechen</button
+                    >Cancel</button
                   >
                   <button
                     class="plain delete"
                     disabled={busy || job.state.running}
-                    aria-label={'Endgültig löschen: ' + job.name}
-                    onclick={() => deleteJob(job.id)}>Löschen</button
+                    aria-label={'Confirm deletion: ' + job.name}
+                    onclick={() => deleteJob(job.id)}>Delete</button
                   >
                 {:else}
                   {#if job.state.running}<button
                       class="plain"
-                      aria-label={'Pausieren: ' + job.name}
-                      onclick={() => stop(job.id)}>Pausieren</button
+                      aria-label={'Pause: ' + job.name}
+                      onclick={() => stop(job.id)}>Pause</button
                     >{/if}
                   <button
                     class="plain delete"
                     id={'delete-' + job.id}
                     disabled={busy || job.state.running}
-                    aria-label={'Job löschen: ' + job.name}
-                    title={job.state.running
-                      ? 'Job zuerst pausieren'
-                      : 'Job löschen'}
-                    onclick={() => confirmDeletion(job.id, true)}
-                    >Löschen</button
+                    aria-label={'Delete job: ' + job.name}
+                    title={job.state.running ? 'Pause job first' : 'Delete job'}
+                    onclick={() => confirmDeletion(job.id, true)}>Delete</button
                   >
                 {/if}
               </div>
@@ -330,7 +327,7 @@
     </section>
     {#if accounts.length}
       <section aria-labelledby="accounts-heading">
-        <h2 id="accounts-heading"><b>02</b>Konten</h2>
+        <h2 id="accounts-heading"><b>02</b>Accounts</h2>
         <div class="dashboard-list">
           {#each accounts as job (job.id)}
             {@const config = job.draft.request.config}
@@ -340,13 +337,15 @@
               onclick={() => openJob(job.id)}
               ><span
                 >{config.fromName || address}<small
-                  >{address} · {config.host || 'SMTP-Server fehlt'}</small
+                  >{address} · {config.provider === 'google'
+                    ? 'Google / Workspace'
+                    : config.host || 'SMTP server missing'}</small
                 ></span
               ><small
                 >{accountRunning(address)
-                  ? 'Belegt · Job aktiv'
-                  : 'Frei'}</small
-              ><span class="small">Öffnen →</span></button
+                  ? 'Busy · Job running'
+                  : 'Available'}</small
+              ><span class="small">Open →</span></button
             >
           {/each}
         </div>

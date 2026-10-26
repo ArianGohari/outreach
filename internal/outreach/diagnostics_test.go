@@ -32,7 +32,7 @@ func TestSMTPDiagnosticCodes(t *testing.T) {
 			if tc.step == "AUTH" && (f.SMTPCode != 535 || !strings.Contains(f.Details, "5.7.8")) {
 				t.Fatal(f)
 			}
-			if tc.uncertain && !strings.Contains(f.Hint, "kein automatischer erneuter Versand") {
+			if tc.uncertain && !strings.Contains(f.Hint, "not be retried automatically") {
 				t.Fatal(f)
 			}
 		})

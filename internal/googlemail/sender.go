@@ -51,7 +51,7 @@ func (g *Client) Send(ctx context.Context, c outreach.Config, m outreach.Message
 	req.Header.Set("Content-Type", "application/json")
 	res, err := g.http.Do(req)
 	if err != nil {
-		return fail("uncertain", problem("GOOGLE_SEND_UNCERTAIN", "Die Versandbestätigung von Google fehlt.", "Die Mail könnte bereits angenommen worden sein. Kein automatischer erneuter Versand."))
+		return fail("uncertain", problem("GOOGLE_SEND_UNCERTAIN", "Google did not confirm acceptance.", "The message may already have been accepted. It will not be retried automatically."))
 	}
 	defer res.Body.Close()
 	if res.StatusCode != 200 {
@@ -59,13 +59,13 @@ func (g *Client) Send(ctx context.Context, c outreach.Config, m outreach.Message
 		if res.StatusCode >= 400 && res.StatusCode < 500 {
 			status = "failed"
 		}
-		return fail(status, apiError("E-Mail senden", res.StatusCode, res.Body))
+		return fail(status, apiError("Send email", res.StatusCode, res.Body))
 	}
 	var result struct {
 		ID string `json:"id"`
 	}
 	if json.NewDecoder(io.LimitReader(res.Body, 65536)).Decode(&result) != nil || result.ID == "" {
-		return fail("uncertain", problem("GOOGLE_SEND_UNCERTAIN", "Google hat keine eindeutige Versandbestätigung geliefert.", "Die Mail könnte bereits angenommen worden sein. Erneuter Versand bleibt gesperrt."))
+		return fail("uncertain", problem("GOOGLE_SEND_UNCERTAIN", "Google did not return a valid acceptance confirmation.", "The message may already have been accepted. Sending it again remains blocked."))
 	}
-	return outreach.SendResult{Status: "sent", Detail: "An Google übergeben"}
+	return outreach.SendResult{Status: "sent", Detail: "Accepted by Google"}
 }

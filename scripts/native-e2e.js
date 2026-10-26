@@ -48,32 +48,33 @@
     }, "worker completion");
   }
   try {
-    await click("Neuen Job anlegen");
+    assert(document.documentElement.lang === "en", "app language must be English");
+    await click("Create new job");
     await until(
       () =>
         visible(document.querySelector(".job-editor")) &&
         [...document.querySelectorAll("button")].some(
-          (b) => b.textContent.trim() === "Entwurf speichern" && !b.disabled,
+          (b) => b.textContent.trim() === "Save draft" && !b.disabled,
         ),
       "editor",
     );
-    input("Betreff", "Hallo {{First Name}} {{Last Name}}");
+    input("Subject", "Hallo {{First Name}} {{Last Name}}");
     input("Text", "Hi {{First Name}} at {{Company Name}}");
-    await click("Nachrichten prüfen & Vorschau");
+    await click("Validate & preview");
     await until(() => text().includes("Hallo Jane Doe"), "Jane Doe preview");
     assert(
       [...document.querySelectorAll("button")].find(
-        (b) => visible(b) && b.textContent.trim() === "Senden",
+        (b) => visible(b) && b.textContent.trim() === "Send",
       ).disabled,
       "example authorized send",
     );
-    input("Betreff", "");
-    await click("Nachrichten prüfen & Vorschau");
+    input("Subject", "");
+    await click("Validate & preview");
     await until(
       () =>
         document
           .querySelector('[role="alert"]')
-          ?.textContent.includes("Betreff leer"),
+          ?.textContent.includes("subject is empty"),
       "native error details",
     );
     assert(
@@ -87,35 +88,35 @@
       receipt.logged && receipt.id,
       "log receipt rejected by native binding",
     );
-    input("Betreff", "Hallo {{First Name}}");
-    input("SMTP-Server", "127.0.0.1");
+    input("Subject", "Hallo {{First Name}}");
+    input("SMTP server", "127.0.0.1");
     input("Port", String(window.__nativeTest.port));
-    input("Benutzer", "sender@example.org");
-    input("Passwort", "synthetic-password");
-    input("Pause je E-Mail (Sek.)", "1");
-    input("Pause je Batch (Stunden)", "0");
-    await click("Verbindung prüfen");
-    await until(() => text().includes("Verbunden"), "TLS connection");
-    await click("Datei auswählen");
+    input("Username", "sender@example.org");
+    input("Password", "synthetic-password");
+    input("Pause per email (seconds)", "1");
+    input("Pause per batch (hours)", "0");
+    await click("Check connection");
+    await until(() => text().includes("Connected"), "TLS connection");
+    await click("Choose file");
     await until(() => text().includes("synthetic.csv"), "native CSV import");
     const verified = [...document.querySelectorAll("label")]
-      .find((el) => visible(el) && el.textContent.trim() === "Nur verifizierte")
+      .find((el) => visible(el) && el.textContent.trim() === "Verified only")
       ?.querySelector("input");
     assert(verified?.checked, "verification default lost");
     verified.click();
     await until(
-      () => text().includes("2 verwendbar"),
+      () => text().includes("2 eligible"),
       "filter and CSV persistence",
     );
-    await click("Kontakte prüfen");
-    await click("Nachrichten prüfen & Vorschau");
+    await click("Check contacts");
+    await click("Validate & preview");
     await until(() => text().includes("Hallo Lena"), "real contact preview");
-    input("Testmail an", "test@example.org");
-    await click("Testmail senden");
-    await until(() => text().includes("Testmail an SMTP"), "testmail");
+    input("Test email to", "test@example.org");
+    await click("Send test email");
+    await until(() => text().includes("Test email accepted by SMTP"), "testmail");
     const workspace = await api.GetWorkspace();
     const id = workspace[0].id;
-    await click("Senden");
+    await click("Send");
     const state = await settled(id);
     assert(
       state.deliveries.every((d) => d.status === "sent"),
@@ -128,9 +129,9 @@
     const token = await api.SendTest(id, req, 0, "test@example.org");
     await api.Start(id, req, token);
     await settled(id);
-    await click("Tab schließen: Neuer Job");
-    await click("Job löschen: Neuer Job");
-    await click("Endgültig löschen: Neuer Job");
+    await click("Close tab: New job");
+    await click("Delete job: New job");
+    await click("Confirm deletion: New job");
     await until(
       async () => (await api.GetWorkspace()).length === 0,
       "delete through UI",

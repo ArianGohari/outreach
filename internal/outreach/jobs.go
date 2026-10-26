@@ -67,7 +67,7 @@ func NewJobs(store *Store, sender Sender, clock Clock, reporter *diagnostics.Rep
 				return nil, err
 			}
 			defer tx.Rollback()
-			if _, err = tx.Exec("INSERT INTO jobs(id,name,draft) VALUES('legacy','Bisheriger Versand',?)", blob); err != nil {
+			if _, err = tx.Exec("INSERT INTO jobs(id,name,draft) VALUES('legacy','Previous outreach',?)", blob); err != nil {
 				return nil, err
 			}
 			if _, err = tx.Exec("INSERT INTO meta(key,value) VALUES('active:legacy',?)", old.ID); err != nil {
@@ -133,12 +133,12 @@ func (j *Jobs) Create(name string) (JobView, error) {
 	j.mu.Lock()
 	defer j.mu.Unlock()
 	if strings.TrimSpace(name) == "" {
-		name = "Neuer Job"
+		name = "New job"
 	}
 	if utf8.RuneCountInString(name) > 100 || invalidText(name, false) {
-		return JobView{}, fmt.Errorf("Jobname: höchstens 100 Zeichen ohne Steuerzeichen")
+		return JobView{}, fmt.Errorf("Job name: at most 100 characters, without control characters")
 	}
-	if name == "Neuer Job" {
+	if name == "New job" {
 		ids := make([]string, 0, len(j.entries))
 		for id := range j.entries {
 			ids = append(ids, id)
@@ -181,7 +181,7 @@ func (j *Jobs) Get(id string) (*Job, error) {
 	defer j.mu.Unlock()
 	job := j.entries[id]
 	if job == nil {
-		return nil, fmt.Errorf("Job nicht gefunden")
+		return nil, fmt.Errorf("Job not found")
 	}
 	return job, nil
 }
@@ -191,11 +191,11 @@ func (j *Jobs) Acquire(id string) (*Job, func(), error) {
 		return nil, nil, err
 	}
 	if !job.op.TryLock() {
-		return nil, nil, fmt.Errorf("Für diesen Job läuft noch eine Aktion. Bitte kurz warten")
+		return nil, nil, fmt.Errorf("An action is still running for this job. Please wait")
 	}
 	if job.discarded {
 		job.op.Unlock()
-		return nil, nil, fmt.Errorf("Job wurde verworfen")
+		return nil, nil, fmt.Errorf("Job was discarded")
 	}
 	return job, job.op.Unlock, nil
 }
@@ -228,7 +228,7 @@ func (j *Jobs) Views() ([]JobView, error) {
 	for i := range views {
 		job := j.entries[views[i].ID]
 		if job == nil {
-			return nil, fmt.Errorf("Job nicht gefunden")
+			return nil, fmt.Errorf("Job not found")
 		}
 		views[i].Empty, err = j.empty(views[i].ID)
 		if err != nil {
@@ -249,14 +249,14 @@ func (j *Jobs) SaveDraft(job *Job, name string, req Request) error {
 		return err
 	}
 	if state.Running {
-		return fmt.Errorf("Laufenden Job vor Änderungen pausieren")
+		return fmt.Errorf("Pause the running job before making changes")
 	}
 	name = strings.TrimSpace(name)
 	if name == "" || utf8.RuneCountInString(name) > 100 || invalidText(name, false) {
-		return fmt.Errorf("Jobname: 1 bis 100 Zeichen ohne Steuerzeichen")
+		return fmt.Errorf("Job name: 1 to 100 characters, without control characters")
 	}
 	if len(req.Body) > 1000000 || len(req.Subject) > 10000 {
-		return fmt.Errorf("Nachricht ist zu lang")
+		return fmt.Errorf("Message is too long")
 	}
 	req.Config = req.Config.Public()
 	job.Session.mu.Lock()
@@ -299,7 +299,7 @@ func (j *Jobs) Start(job *Job, req Request, token string) error {
 		}
 		other, _ := Address(v.State.Plan.Request.Config.Sender())
 		if sender == other {
-			return fmt.Errorf("Für diese Absenderadresse läuft bereits der Job „%s“. Diesen zuerst pausieren", v.Name)
+			return fmt.Errorf("Job %q is already running for this sender address. Pause it first", v.Name)
 		}
 	}
 	return job.Session.Start(req, token)
@@ -329,7 +329,7 @@ func (j *Jobs) RevokeGoogleGrant(grant string, remove func() error) error {
 	}
 	for _, v := range views {
 		if v.State.Running && v.State.Plan != nil && v.State.Plan.Request.Config.GoogleGrant == grant {
-			return fmt.Errorf("Jobs dieses Google-Kontos zuerst stoppen")
+			return fmt.Errorf("Stop jobs using this Google connection first")
 		}
 	}
 	if err = remove(); err != nil {
@@ -367,7 +367,9 @@ func (j *Jobs) empty(id string) (bool, error) {
 		return false, err
 	}
 	r := d.Report
-	return name == "Neuer Job" && d.Request == blankDraft().Request && rawBytes == 0 && history == 0 && r.Filename == "" && !r.Example && !r.HasStatus && r.OnlyVerified && r.Total == 0 && r.PreviouslyContacted == 0 && len(r.Headers) == 0 && len(r.Contacts) == 0 && len(r.Issues) == 0, nil
+	// Keep recognizing untouched drafts created before the English UI.
+	defaultName := name == "New job" || name == "Neuer Job"
+	return defaultName && d.Request == blankDraft().Request && rawBytes == 0 && history == 0 && r.Filename == "" && !r.Example && !r.HasStatus && r.OnlyVerified && r.Total == 0 && r.PreviouslyContacted == 0 && len(r.Headers) == 0 && len(r.Contacts) == 0 && len(r.Issues) == 0, nil
 }
 func (j *Jobs) DiscardEmpty(id string) error {
 	job, release, err := j.Acquire(id)
@@ -382,14 +384,14 @@ func (j *Jobs) DiscardEmpty(id string) error {
 		return err
 	}
 	if !empty {
-		return fmt.Errorf("Nur vollständig leere Entwürfe ohne Versandhistorie können verworfen werden")
+		return fmt.Errorf("Only empty drafts without sending history can be discarded")
 	}
 	state, err := job.Engine.State()
 	if err != nil {
 		return err
 	}
 	if state.Running {
-		return fmt.Errorf("Laufender Job kann nicht verworfen werden")
+		return fmt.Errorf("A running job cannot be discarded")
 	}
 	if _, err = j.store.db.Exec("DELETE FROM jobs WHERE id=?", id); err != nil {
 		return err
@@ -412,7 +414,7 @@ func (j *Jobs) Delete(id string) error {
 		return err
 	}
 	if state.Running {
-		return fmt.Errorf("Job zuerst pausieren und laufende Übertragung abwarten")
+		return fmt.Errorf("Pause the job and wait for the current transfer to finish")
 	}
 	tx, err := j.store.db.Begin()
 	if err != nil {

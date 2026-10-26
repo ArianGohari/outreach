@@ -33,66 +33,66 @@ func (c Config) Sender() string {
 }
 func (c Config) Validate() error {
 	if c.Provider != "" && c.Provider != "google" {
-		return fmt.Errorf("Unbekannter Versandanbieter")
+		return fmt.Errorf("Unknown sending provider")
 	}
 	if c.Provider == "google" {
 		if c.GoogleGrant == "" {
-			return fmt.Errorf("Google-Konto zuerst verbinden")
+			return fmt.Errorf("Connect a Google account first")
 		}
 		if _, err := Address(c.Username); err != nil {
-			return fmt.Errorf("Google-Konto: %w", err)
+			return fmt.Errorf("Google account: %w", err)
 		}
 		if !strings.EqualFold(c.Sender(), c.Username) {
-			return fmt.Errorf("Google-Absender muss dem verbundenen Konto entsprechen; Aliase werden nicht unterstützt")
+			return fmt.Errorf("The Google sender must match the connected account; aliases are not supported")
 		}
 	} else {
 		if c.Host == "" || strings.ContainsAny(c.Host, " /\\\r\n\t:") {
-			return fmt.Errorf("SMTP-Server als Hostname ohne Port angeben")
+			return fmt.Errorf("Enter the SMTP server as a hostname without a port")
 		}
 		if c.Port < 1 || c.Port > 65535 {
-			return fmt.Errorf("Ungültiger SMTP-Port")
+			return fmt.Errorf("Invalid SMTP port")
 		}
 		if c.Username == "" || c.Password == "" {
-			return fmt.Errorf("SMTP-Benutzer und Passwort fehlen")
+			return fmt.Errorf("SMTP username and password are required")
 		}
 	}
 	if _, err := Address(c.Sender()); err != nil {
-		return fmt.Errorf("Absender: %w", err)
+		return fmt.Errorf("Sender: %w", err)
 	}
 	if c.ReplyTo != "" {
 		if _, err := Address(c.ReplyTo); err != nil {
-			return fmt.Errorf("Antwort an: %w", err)
+			return fmt.Errorf("Reply-to: %w", err)
 		}
 	}
 	if invalidText(c.FromName, false) || invalidText(c.Username, false) {
-		return fmt.Errorf("Ungültige Steuerzeichen im Absender")
+		return fmt.Errorf("Invalid control characters in sender")
 	}
 	return nil
 }
 func Address(s string) (string, error) {
 	if s == "" || s != strings.TrimSpace(s) || invalidText(s, false) || strings.ContainsAny(s, "<>,; ") {
-		return "", fmt.Errorf("Genau eine gültige E-Mail-Adresse erforderlich")
+		return "", fmt.Errorf("Exactly one valid email address is required")
 	}
 	for _, r := range s {
 		if r > 127 {
-			return "", fmt.Errorf("Internationale E-Mail-Adressen benötigen SMTPUTF8 und werden noch nicht unterstützt")
+			return "", fmt.Errorf("International email addresses require SMTPUTF8 and are not yet supported")
 		}
 	}
 	a, err := mail.ParseAddress(s)
 	at := strings.LastIndexByte(s, '@')
 	if err != nil || a.Address != s || at < 1 || !strings.Contains(s[at+1:], ".") {
-		return "", fmt.Errorf("Ungültige E-Mail-Adresse")
+		return "", fmt.Errorf("Invalid email address")
 	}
 	if len(s) > 254 || at > 64 {
-		return "", fmt.Errorf("E-Mail-Adresse ist zu lang")
+		return "", fmt.Errorf("Email address is too long")
 	}
 	for _, label := range strings.Split(s[at+1:], ".") {
 		if len(label) == 0 || len(label) > 63 || label[0] == '-' || label[len(label)-1] == '-' {
-			return "", fmt.Errorf("Ungültige E-Mail-Domain")
+			return "", fmt.Errorf("Invalid email domain")
 		}
 		for _, r := range label {
 			if !(r >= 'a' && r <= 'z' || r >= 'A' && r <= 'Z' || r >= '0' && r <= '9' || r == '-') {
-				return "", fmt.Errorf("Ungültige E-Mail-Domain")
+				return "", fmt.Errorf("Invalid email domain")
 			}
 		}
 	}
@@ -141,7 +141,7 @@ type Schedule struct {
 
 func (s Schedule) Validate() error {
 	if s.Seconds < 1 || s.Seconds > 86400 || s.BatchSize < 1 || s.BatchSize > 100 || s.BatchMinutes < 0 || s.BatchMinutes > 1440 {
-		return fmt.Errorf("Versandpausen oder Batchgröße liegen außerhalb der erlaubten Grenzen")
+		return fmt.Errorf("Sending pauses or batch size are outside the allowed range")
 	}
 	return nil
 }

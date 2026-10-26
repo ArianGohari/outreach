@@ -35,6 +35,7 @@ Der vorhandene Schutz ist lokal und gilt für identischen Nachrichteninhalt. Ge�
 
 ## Jobs und Oberfläche
 
+- Die gesamte App ist auf Englisch: Oberfläche, Hilfetexte, eigene Dialoge, Validierungsfehler und Diagnosen. Keine Sprachauswahl nötig. Vorhandene Benutzereingaben und Versandhistorie nicht übersetzen oder verändern.
 - Mehrere Jobs und Absender; höchstens ein gleichzeitig laufender Job je normalisierter Absenderadresse. Das gilt auch während Batchpausen. Andere Absender dürfen parallel laufen.
 - Jobs derselben Adresse dürfen vorbereitet werden; sie starten nach Freigabe manuell.
 - Dashboard und Job-Tabs. Neue Jobs über das Plus in der Tab-Leiste, kein zusätzlicher "Neuer Job"-Button.

@@ -72,7 +72,7 @@ beforeEach(() => {
     Start: vi.fn().mockResolvedValue(undefined),
     ReportClientError: vi.fn().mockResolvedValue({
       code: 'UI_INPUT',
-      message: 'Ungültige Eingabe',
+      message: 'Invalid input',
       id: 'client-1',
       logged: true,
     }),
@@ -119,7 +119,7 @@ async function renderEditor() {
   });
   if (state.plan) {
     const edit = await screen.findByRole('button', {
-      name: 'Job bearbeiten & fortsetzen',
+      name: 'Edit & resume job',
     });
     await waitFor(() =>
       expect((edit as HTMLButtonElement).disabled).toBe(false),
@@ -185,11 +185,11 @@ describe('batch pause units', () => {
     });
     await renderEditor();
     const input = screen.getByLabelText(
-      'Pause je Batch (Stunden)',
+      'Pause per batch (hours)',
     ) as HTMLInputElement;
     await waitFor(() => expect(Number(input.value)).toBe(61 / 60));
     const preview = screen.getByRole('button', {
-      name: 'Nachrichten prüfen & Vorschau',
+      name: 'Validate & preview',
     });
     await waitFor(() =>
       expect((preview as HTMLButtonElement).disabled).toBe(false),
@@ -226,31 +226,31 @@ describe('design workflow', () => {
     });
     await renderEditor();
     const preview = screen.getByRole('button', {
-      name: 'Nachrichten prüfen & Vorschau',
+      name: 'Validate & preview',
     });
     await waitFor(() =>
       expect((preview as HTMLButtonElement).disabled).toBe(false),
     );
-    await fireEvent.input(screen.getByLabelText('Betreff'), {
+    await fireEvent.input(screen.getByLabelText('Subject'), {
       target: { value: 'Hallo {{First Name}} {{Last Name}}' },
     });
     await fireEvent.input(screen.getByLabelText('Text'), {
       target: { value: 'Hallo {{First Name}} {{Last Name}}!' },
     });
     await fireEvent.click(preview);
-    await screen.findByText('Jane Doe · Beispieldaten');
+    await screen.findByText('Jane Doe · Sample data');
     expect(screen.getByText('Hallo Jane Doe!')).toBeTruthy();
     expect(
       (
         screen.getByRole('button', {
-          name: 'Senden',
+          name: 'Send',
         }) as HTMLButtonElement
       ).disabled,
     ).toBe(true);
     expect(
       (
         screen.getByRole('button', {
-          name: 'Testmail senden',
+          name: 'Send test email',
         }) as HTMLButtonElement
       ).disabled,
     ).toBe(true);
@@ -263,14 +263,14 @@ describe('design workflow', () => {
     await renderEditor();
     await waitFor(() => expect(bridge.GetState).toHaveBeenCalled());
     expect(
-      (screen.getByRole('button', { name: 'Senden' }) as HTMLButtonElement)
+      (screen.getByRole('button', { name: 'Send' }) as HTMLButtonElement)
         .disabled,
     ).toBe(true);
     expect(bridge.SendTest).not.toHaveBeenCalled();
     expect(bridge.Start).not.toHaveBeenCalled();
     expect(screen.getAllByRole('heading', { level: 2 })).toHaveLength(5);
     expect(
-      (screen.getByLabelText('Pause je Batch (Stunden)') as HTMLInputElement)
+      (screen.getByLabelText('Pause per batch (hours)') as HTMLInputElement)
         .value,
     ).toBe('24');
   });
@@ -280,26 +280,22 @@ describe('design workflow', () => {
       expect(
         (
           screen.getByRole('button', {
-            name: 'Datei auswählen',
+            name: 'Choose file',
           }) as HTMLButtonElement
         ).disabled,
       ).toBe(false),
     );
-    await fireEvent.click(
-      screen.getByRole('button', { name: 'Datei auswählen' }),
-    );
-    await screen.findByText(/Verifizierungsstatus nicht enthalten/);
+    await fireEvent.click(screen.getByRole('button', { name: 'Choose file' }));
+    await screen.findByText(/Verification status is missing/);
     expect(
-      (screen.getByRole('button', { name: 'Senden' }) as HTMLButtonElement)
+      (screen.getByRole('button', { name: 'Send' }) as HTMLButtonElement)
         .disabled,
     ).toBe(true);
     expect(
       screen.queryByRole('checkbox', { name: 'Ohne Duplikate' }),
     ).toBeNull();
     expect(
-      screen.queryByText(
-        'Doppelte Kontakte werden automatisch ausgeschlossen.',
-      ),
+      screen.queryByText('Doppelte Contacts werden automatisch excluded.'),
     ).toBeNull();
   });
   it('invalidates successful test when content changes', async () => {
@@ -308,48 +304,46 @@ describe('design workflow', () => {
       expect(
         (
           screen.getByRole('button', {
-            name: 'Verbindung prüfen',
+            name: 'Check connection',
           }) as HTMLButtonElement
         ).disabled,
       ).toBe(false),
     );
-    await fireEvent.input(screen.getByLabelText('Benutzer'), {
+    await fireEvent.input(screen.getByLabelText('Username'), {
       target: { value: 'sender@example.org' },
     });
     await fireEvent.click(
-      screen.getByRole('button', { name: 'Verbindung prüfen' }),
+      screen.getByRole('button', { name: 'Check connection' }),
     );
-    await screen.findByText('Verbunden · TLS');
-    await fireEvent.click(
-      screen.getByRole('button', { name: 'Datei auswählen' }),
-    );
+    await screen.findByText('Connected · TLS');
+    await fireEvent.click(screen.getByRole('button', { name: 'Choose file' }));
     await screen.findByText('synthetic.csv');
     await fireEvent.click(
-      screen.getByRole('button', { name: 'Kontakte prüfen' }),
+      screen.getByRole('button', { name: 'Check contacts' }),
     );
     await waitFor(() =>
       expect(
         (
           screen.getByRole('button', {
-            name: 'Testmail senden',
+            name: 'Send test email',
           }) as HTMLButtonElement
         ).disabled,
       ).toBe(false),
     );
     await fireEvent.click(
-      screen.getByRole('button', { name: 'Testmail senden' }),
+      screen.getByRole('button', { name: 'Send test email' }),
     );
     await waitFor(() =>
       expect(
-        (screen.getByRole('button', { name: 'Senden' }) as HTMLButtonElement)
+        (screen.getByRole('button', { name: 'Send' }) as HTMLButtonElement)
           .disabled,
       ).toBe(false),
     );
-    await fireEvent.input(screen.getByLabelText('Betreff'), {
+    await fireEvent.input(screen.getByLabelText('Subject'), {
       target: { value: 'changed' },
     });
     expect(
-      (screen.getByRole('button', { name: 'Senden' }) as HTMLButtonElement)
+      (screen.getByRole('button', { name: 'Send' }) as HTMLButtonElement)
         .disabled,
     ).toBe(true);
     expect(bridge.Start).not.toHaveBeenCalled();
@@ -362,8 +356,9 @@ describe('error reporting', () => {
       new Error(
         JSON.stringify({
           code: 'OPERATION_FAILED',
-          message: 'Nachrichtenvorschau fehlgeschlagen',
-          details: 'Zeile 1: Betreff leer, zu lang oder mit Steuerzeichen',
+          message: 'Nachrichtenvorschau failed',
+          details:
+            'Row 1: subject is empty, too long or contains control characters',
           id: 'preview-123',
           logged: true,
           logPath: '/logs/errors.jsonl',
@@ -372,24 +367,24 @@ describe('error reporting', () => {
     );
     await renderEditor();
     const button = screen.getByRole('button', {
-      name: 'Nachrichten prüfen & Vorschau',
+      name: 'Validate & preview',
     });
     await waitFor(() =>
       expect((button as HTMLButtonElement).disabled).toBe(false),
     );
     expect(
-      (screen.getByLabelText('Pause je Batch (Stunden)') as HTMLInputElement)
+      (screen.getByLabelText('Pause per batch (hours)') as HTMLInputElement)
         .value,
     ).toBe('24');
     expect(
-      (screen.getByLabelText('Batchgröße (max. 100)') as HTMLInputElement)
+      (screen.getByLabelText('Batch size (max. 100)') as HTMLInputElement)
         .value,
     ).toBe('50');
     await fireEvent.click(button);
     const alert = await screen.findByRole('alert');
-    expect(alert.textContent).toContain('Betreff leer');
+    expect(alert.textContent).toContain('subject is empty');
     expect(alert.textContent).toContain('preview-123');
-    expect(alert.textContent).toContain('Fehler lokal protokolliert.');
+    expect(alert.textContent).toContain('Error logged locally.');
     expect(alert.textContent).not.toContain('[object Object]');
     expect(bridge.ReportClientError).not.toHaveBeenCalled();
     expect(bridge.Start).not.toHaveBeenCalled();
@@ -397,10 +392,10 @@ describe('error reporting', () => {
   it('shows structured SMTP details, remediation and matching log ID', async () => {
     vi.mocked(bridge.CheckConnection).mockRejectedValue({
       code: 'SMTP_AUTH',
-      message: 'SMTP-Anmeldung fehlgeschlagen',
-      operation: 'SMTP-Verbindung prüfen',
+      message: 'SMTP authentication failed',
+      operation: 'Check SMTP connection',
       details: 'SMTP 535: 5.7.8 Authentication credentials invalid',
-      hint: 'App-Passwort prüfen.',
+      hint: 'Check the app password.',
       step: 'AUTH',
       smtpCode: 535,
       id: 'error-123',
@@ -408,7 +403,7 @@ describe('error reporting', () => {
       logPath: '/logs/errors.jsonl',
     });
     await renderEditor();
-    const button = screen.getByRole('button', { name: 'Verbindung prüfen' });
+    const button = screen.getByRole('button', { name: 'Check connection' });
     await waitFor(() =>
       expect((button as HTMLButtonElement).disabled).toBe(false),
     );
@@ -417,15 +412,15 @@ describe('error reporting', () => {
     expect(alert.textContent).toContain(
       '5.7.8 Authentication credentials invalid',
     );
-    expect(alert.textContent).toContain('App-Passwort prüfen.');
+    expect(alert.textContent).toContain('Check the app password.');
     expect(alert.textContent).toContain('error-123');
     expect(alert.textContent).toContain('/logs/errors.jsonl');
     expect(bridge.ReportClientError).not.toHaveBeenCalled();
-    expect(screen.queryByText('Verbunden · TLS')).toBeNull();
+    expect(screen.queryByText('Connected · TLS')).toBeNull();
   });
   it('keeps an imported list when the file dialog is cancelled without logging', async () => {
     await renderEditor();
-    const button = screen.getByRole('button', { name: 'Datei auswählen' });
+    const button = screen.getByRole('button', { name: 'Choose file' });
     await waitFor(() =>
       expect((button as HTMLButtonElement).disabled).toBe(false),
     );
@@ -438,13 +433,13 @@ describe('error reporting', () => {
       new Error(
         JSON.stringify({
           code: 'CANCELLED',
-          message: 'Dateiauswahl abgebrochen',
+          message: 'File selection cancelled',
           cancelled: true,
         }),
       ),
     );
     await fireEvent.click(button);
-    await screen.findByText('Dateiauswahl abgebrochen');
+    await screen.findByText('File selection cancelled');
     expect(screen.getByText('synthetic.csv')).toBeTruthy();
     expect(screen.queryByRole('alert')).toBeNull();
     expect(bridge.ReportClientError).not.toHaveBeenCalled();
@@ -452,23 +447,23 @@ describe('error reporting', () => {
   it('reports local validation and exposes a failed log write', async () => {
     vi.mocked(bridge.ReportClientError).mockResolvedValue({
       code: 'UI_INPUT',
-      message: 'Ungültige Eingabe',
+      message: 'Invalid input',
       logged: false,
       logIssue: 'disk full',
     });
     await renderEditor();
     const button = screen.getByRole('button', {
-      name: 'Nachrichten prüfen & Vorschau',
+      name: 'Validate & preview',
     });
     await waitFor(() =>
       expect((button as HTMLButtonElement).disabled).toBe(false),
     );
-    await fireEvent.input(screen.getByLabelText('Pause je Batch (Stunden)'), {
+    await fireEvent.input(screen.getByLabelText('Pause per batch (hours)'), {
       target: { value: '25' },
     });
     await fireEvent.click(button);
     const alert = await screen.findByRole('alert');
-    expect(alert.textContent).toContain('Batchpause zwischen 0 und 24 Stunden');
+    expect(alert.textContent).toContain('batch pause between 0 and 24 hours');
     expect(alert.textContent).toContain('disk full');
     expect(bridge.Preview).not.toHaveBeenCalled();
     expect(bridge.ReportClientError).toHaveBeenCalled();
@@ -490,18 +485,18 @@ describe('Google account setup', () => {
       remember: false,
     });
     await renderEditor();
-    const provider = screen.getByLabelText('Versand über');
+    const provider = screen.getByLabelText('Send via');
     await waitFor(() =>
       expect((provider as HTMLSelectElement).disabled).toBe(false),
     );
     await fireEvent.change(provider, { target: { value: 'google' } });
     const login = await screen.findByRole('button', {
-      name: 'Mit Google verbinden',
+      name: 'Connect Google',
     });
     expect((login as HTMLButtonElement).disabled).toBe(true);
-    expect(screen.queryByLabelText('Passwort')).toBeNull();
+    expect(screen.queryByLabelText('Password')).toBeNull();
     const importClient = screen.getByRole('button', {
-      name: 'OAuth-JSON auswählen',
+      name: 'Select OAuth JSON',
     });
     await waitFor(() =>
       expect((importClient as HTMLButtonElement).disabled).toBe(false),
@@ -514,13 +509,13 @@ describe('Google account setup', () => {
     await screen.findByText('google@example.org');
     expect(bridge.ConnectGoogle).toHaveBeenCalledWith('job-1');
     expect(
-      (screen.getByRole('button', { name: 'Senden' }) as HTMLButtonElement)
+      (screen.getByRole('button', { name: 'Send' }) as HTMLButtonElement)
         .disabled,
     ).toBe(true);
     await fireEvent.click(
-      screen.getByRole('button', { name: 'Verbindung prüfen' }),
+      screen.getByRole('button', { name: 'Check connection' }),
     );
-    await screen.findByText('Verbunden · Google');
+    await screen.findByText('Connected · Google');
     expect(bridge.CheckConnection).toHaveBeenCalledWith(
       'job-1',
       expect.objectContaining({
@@ -531,7 +526,7 @@ describe('Google account setup', () => {
     );
     expect(bridge.SendTest).not.toHaveBeenCalled();
     await fireEvent.click(
-      screen.getByRole('button', { name: 'Google-Verbindung entfernen' }),
+      screen.getByRole('button', { name: 'Remove Google connection' }),
     );
     await waitFor(() =>
       expect(screen.queryByText('google@example.org')).toBeNull(),
@@ -547,7 +542,7 @@ describe('Google account setup', () => {
       new Error(
         JSON.stringify({
           code: 'GOOGLE_POLICY',
-          message: 'Google blockiert die Anmeldung',
+          message: 'Google blocked sign-in',
           details: 'Workspace-Richtlinie',
           hint: 'Admin-Freigabe erforderlich.',
           logged: true,
@@ -556,13 +551,13 @@ describe('Google account setup', () => {
       ),
     );
     await renderEditor();
-    const provider = screen.getByLabelText('Versand über');
+    const provider = screen.getByLabelText('Send via');
     await waitFor(() =>
       expect((provider as HTMLSelectElement).disabled).toBe(false),
     );
     await fireEvent.change(provider, { target: { value: 'google' } });
     const login = await screen.findByRole('button', {
-      name: 'Mit Google verbinden',
+      name: 'Connect Google',
     });
     await waitFor(() =>
       expect((login as HTMLButtonElement).disabled).toBe(false),
@@ -574,7 +569,7 @@ describe('Google account setup', () => {
     expect(
       (
         screen.getByRole('button', {
-          name: 'Testmail senden',
+          name: 'Send test email',
         }) as HTMLButtonElement
       ).disabled,
     ).toBe(true);

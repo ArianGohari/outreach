@@ -120,10 +120,10 @@ func TestDesktopCompleteWorkflowAndPersistence(t *testing.T) {
 		t.Fatal(err)
 	}
 	a.services.message = func(_ context.Context, o runtime.MessageDialogOptions) (string, error) {
-		if o.DefaultButton != "Abbrechen" || o.CancelButton != "Abbrechen" {
+		if o.DefaultButton != "Cancel" || o.CancelButton != "Cancel" {
 			t.Error(o)
 		}
-		return "Abbrechen", nil
+		return "Cancel", nil
 	}
 	if err = a.Start(v.ID, r, token); err == nil {
 		t.Fatal("cancelled start accepted")
@@ -134,7 +134,7 @@ func TestDesktopCompleteWorkflowAndPersistence(t *testing.T) {
 	if n != 1 {
 		t.Fatal("cancel sent outreach")
 	}
-	a.services.message = func(context.Context, runtime.MessageDialogOptions) (string, error) { return "Versand starten", nil }
+	a.services.message = func(context.Context, runtime.MessageDialogOptions) (string, error) { return "Start sending", nil }
 	if err = a.Start(v.ID, r, token); err != nil {
 		t.Fatal(err)
 	}
@@ -229,7 +229,7 @@ func TestDesktopImportAndDialogFailures(t *testing.T) {
 	if err := a.DeleteJob(v.ID); err != nil {
 		t.Fatal(err)
 	}
-	blank, _ := a.CreateJob("Neuer Job")
+	blank, _ := a.CreateJob("New job")
 	if err := a.DiscardEmptyJob(blank.ID); err != nil {
 		t.Fatal(err)
 	}
@@ -330,7 +330,7 @@ func TestDesktopBeforeCloseRunningAndErrors(t *testing.T) {
 	}
 	<-sender.entered
 	a.services.message = func(context.Context, runtime.MessageDialogOptions) (string, error) {
-		return "Weiter geöffnet lassen", nil
+		return "Keep open", nil
 	}
 	if !a.beforeClose(context.Background()) {
 		t.Fatal("closed without consent")
@@ -344,7 +344,7 @@ func TestDesktopBeforeCloseRunningAndErrors(t *testing.T) {
 	a.services.message = func(context.Context, runtime.MessageDialogOptions) (string, error) {
 		// Let the confirmed close cancel the worker while its SMTP call is still in flight.
 		go func() { time.Sleep(30 * time.Millisecond); close(sender.release) }()
-		return "Pausieren und beenden", nil
+		return "Pause and quit", nil
 	}
 	if a.beforeClose(context.Background()) {
 		t.Fatal("did not close")
@@ -385,7 +385,7 @@ func TestFrameworkLoggerNeverLeaksRPCArguments(t *testing.T) {
 	if e != nil {
 		t.Fatal(e)
 	}
-	if count != 3 || strings.Contains(string(data), "SUPER_PRIVATE") || strings.Contains(string(data), "PRIVATE_BODY") || strings.Contains(string(data), "alice@example.org") || !strings.Contains(string(data), "Meldungskennung") {
+	if count != 3 || strings.Contains(string(data), "SUPER_PRIVATE") || strings.Contains(string(data), "PRIVATE_BODY") || strings.Contains(string(data), "alice@example.org") || !strings.Contains(string(data), "Message fingerprint") {
 		t.Fatal("unsafe runtime log")
 	}
 }

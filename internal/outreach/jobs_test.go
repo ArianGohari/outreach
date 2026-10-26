@@ -449,11 +449,11 @@ func TestBlankJobIsReusedAndDiscardedWithoutTouchingWork(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	first, err := jobs.Create("Neuer Job")
+	first, err := jobs.Create("New job")
 	if err != nil {
 		t.Fatal(err)
 	}
-	second, err := jobs.Create("Neuer Job")
+	second, err := jobs.Create("New job")
 	if err != nil || first.ID != second.ID || !second.Empty {
 		t.Fatal("blank draft duplicated", err)
 	}
@@ -463,14 +463,14 @@ func TestBlankJobIsReusedAndDiscardedWithoutTouchingWork(t *testing.T) {
 	}
 	req := blankDraft().Request
 	req.Subject = "Keep this subject"
-	if err = jobs.SaveDraft(job, "Neuer Job", req); err != nil {
+	if err = jobs.SaveDraft(job, "New job", req); err != nil {
 		t.Fatal(err)
 	}
 	release()
 	if err = jobs.DiscardEmpty(first.ID); err == nil {
 		t.Fatal("modified draft discarded")
 	}
-	third, err := jobs.Create("Neuer Job")
+	third, err := jobs.Create("New job")
 	if err != nil || third.ID == first.ID {
 		t.Fatal("modified draft reused", err)
 	}
@@ -493,13 +493,13 @@ func TestDiscardProtectsChangedSettingsCSVAndHistoricalPlans(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			view, err := jobs.Create("Neuer Job")
+			view, err := jobs.Create("New job")
 			if err != nil {
 				t.Fatal(err)
 			}
 			job, _ := jobs.Get(view.ID)
 			req := blankDraft().Request
-			name := "Neuer Job"
+			name := "New job"
 			switch kind {
 			case "name":
 				name = "Named draft"
@@ -526,7 +526,7 @@ func TestDiscardProtectsChangedSettingsCSVAndHistoricalPlans(t *testing.T) {
 			if err = jobs.DiscardEmpty(view.ID); err == nil {
 				t.Fatal("nonempty job discarded")
 			}
-			next, err := jobs.Create("Neuer Job")
+			next, err := jobs.Create("New job")
 			if err != nil || next.ID == view.ID {
 				t.Fatal("nonempty job reused", err)
 			}
@@ -544,7 +544,7 @@ func TestConcurrentBlankCreationReusesOneDraft(t *testing.T) {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			v, e := jobs.Create("Neuer Job")
+			v, e := jobs.Create("New job")
 			if e != nil {
 				t.Error(e)
 				return
@@ -574,15 +574,15 @@ func TestStartupPrunesOnlyUntouchedEmptyDrafts(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, id := range []string{"old-empty-1", "old-empty-2", "old-empty-3"} {
-		if _, err = store.db.Exec("INSERT INTO jobs(id,name,draft) VALUES(?,?,?)", id, "Neuer Job", blob); err != nil {
+		if _, err = store.db.Exec("INSERT INTO jobs(id,name,draft) VALUES(?,?,?)", id, "New job", blob); err != nil {
 			t.Fatal(err)
 		}
 	}
-	saved, err := jobs.Create("Mein Entwurf")
+	saved, err := jobs.Create("Mein Draft")
 	if err != nil {
 		t.Fatal(err)
 	}
-	protected, err := jobs.Create("Neuer Job")
+	protected, err := jobs.Create("New job")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -730,5 +730,47 @@ func TestDeleteRejectsBusyRunningAndFailedWrites(t *testing.T) {
 	}
 	if err := jobs.Delete(job.ID); err != nil {
 		t.Fatal(err)
+	}
+}
+
+func TestEnglishUIKeepsLegacyDraftCleanupAndUserData(t *testing.T) {
+	store := testStore(t)
+	jobs, err := NewJobs(store, &fakeSender{}, newClock(), nil, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer jobs.Close()
+	legacy, err := jobs.Create("Neuer Job")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !legacy.Empty {
+		t.Fatal("legacy default no longer recognized as empty")
+	}
+	fresh, err := jobs.Create("")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if fresh.ID != legacy.ID {
+		t.Fatal("created another empty draft after language change")
+	}
+	job, err := jobs.Get(legacy.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	r := blankDraft().Request
+	r.Body = "Hallo {{First Name}}"
+	if err = jobs.SaveDraft(job, "Neuer Job", r); err != nil {
+		t.Fatal(err)
+	}
+	if err = jobs.DiscardEmpty(legacy.ID); err == nil {
+		t.Fatal("discarded user content")
+	}
+	views, err := jobs.Views()
+	if err != nil || len(views) != 1 {
+		t.Fatal(err, views)
+	}
+	if views[0].Name != "Neuer Job" || views[0].Draft.Request.Body != r.Body {
+		t.Fatal("translated existing user data")
 	}
 }

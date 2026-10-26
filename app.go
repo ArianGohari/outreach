@@ -63,7 +63,7 @@ func (a *App) ready() error {
 		return a.startupProblem
 	}
 	if a.jobs == nil {
-		return diagnostics.New("APP_UNAVAILABLE", "App ist nicht bereit", "Die lokalen Versanddaten konnten nicht geladen werden.", "Fehlerprotokoll prüfen und die App nach Beheben der Ursache erneut öffnen.", nil)
+		return diagnostics.New("APP_UNAVAILABLE", "App is not ready", "Local sending data could not be loaded.", "Check the error log, fix the cause and reopen the app.", nil)
 	}
 	return nil
 }
@@ -93,7 +93,7 @@ func (a *App) beforeClose(ctx context.Context) bool {
 	}
 	views, err := a.jobs.Views()
 	if err != nil {
-		a.notifyProblem(a.reporter.Report("Jobs vor Beenden prüfen", err))
+		a.notifyProblem(a.reporter.Report("Check jobs before quitting", err))
 		return true
 	}
 	count := 0
@@ -105,33 +105,33 @@ func (a *App) beforeClose(ctx context.Context) bool {
 	if count == 0 {
 		return false
 	}
-	answer, err := a.desktop().message(ctx, runtime.MessageDialogOptions{Type: runtime.QuestionDialog, Title: "Jobs pausieren und beenden?", Message: fmt.Sprintf("%d Jobs laufen. Bereits laufende Übertragungen werden abgeschlossen. Nach dem Öffnen müssen die Jobs manuell fortgesetzt werden.", count), Buttons: []string{"Weiter geöffnet lassen", "Pausieren und beenden"}, DefaultButton: "Weiter geöffnet lassen", CancelButton: "Weiter geöffnet lassen"})
+	answer, err := a.desktop().message(ctx, runtime.MessageDialogOptions{Type: runtime.QuestionDialog, Title: "Pause jobs and quit?", Message: fmt.Sprintf("%d jobs are running. Transfers already in progress will finish. Resume jobs manually after reopening the app.", count), Buttons: []string{"Keep open", "Pause and quit"}, DefaultButton: "Keep open", CancelButton: "Keep open"})
 	if err != nil {
-		a.notifyProblem(a.reporter.Report("Bestätigungsdialog öffnen", err))
+		a.notifyProblem(a.reporter.Report("Open confirmation dialog", err))
 		return true
 	}
-	if answer != "Pausieren und beenden" {
+	if answer != "Pause and quit" {
 		return true
 	}
 	a.jobs.Close()
 	return false
 }
 func (a *App) GetWorkspace() (views []outreach.JobView, err error) {
-	defer func() { err = a.report("Jobs laden", err) }()
+	defer func() { err = a.report("Load jobs", err) }()
 	if err = a.ready(); err != nil {
 		return
 	}
 	return a.jobs.Views()
 }
 func (a *App) CreateJob(name string) (view outreach.JobView, err error) {
-	defer func() { err = a.report("Job anlegen", err) }()
+	defer func() { err = a.report("Create job", err) }()
 	if err = a.ready(); err != nil {
 		return
 	}
 	return a.jobs.Create(name)
 }
 func (a *App) SaveDraft(id, name string, r outreach.Request) (err error) {
-	defer func() { err = a.report("Job speichern · "+id, err, requestPrivate(r)...) }()
+	defer func() { err = a.report("Save job · "+id, err, requestPrivate(r)...) }()
 	if err = a.ready(); err != nil {
 		return
 	}
@@ -143,7 +143,7 @@ func (a *App) SaveDraft(id, name string, r outreach.Request) (err error) {
 	return a.jobs.SaveDraft(job, name, r)
 }
 func (a *App) GetState(id string) (state outreach.State, err error) {
-	defer func() { err = a.report("Versandstatus laden", err) }()
+	defer func() { err = a.report("Load delivery status", err) }()
 	if err = a.ready(); err != nil {
 		return
 	}
@@ -154,7 +154,7 @@ func (a *App) GetState(id string) (state outreach.State, err error) {
 	return job.Engine.State()
 }
 func (a *App) ChooseCSV(id string, verified bool) (report outreach.Report, err error) {
-	defer func() { err = a.report("CSV importieren · "+id, err) }()
+	defer func() { err = a.report("Import CSV · "+id, err) }()
 	if err = a.ready(); err != nil {
 		return
 	}
@@ -163,25 +163,25 @@ func (a *App) ChooseCSV(id string, verified bool) (report outreach.Report, err e
 		return
 	}
 	defer release()
-	path, e := a.desktop().openFile(a.ctx, runtime.OpenDialogOptions{Title: "Apollo-Kontaktexport auswählen", Filters: []runtime.FileFilter{{DisplayName: "CSV-Dateien", Pattern: "*.csv"}}})
+	path, e := a.desktop().openFile(a.ctx, runtime.OpenDialogOptions{Title: "Select Apollo contact export", Filters: []runtime.FileFilter{{DisplayName: "CSV files", Pattern: "*.csv"}}})
 	if e != nil {
 		return report, e
 	}
 	if path == "" {
-		return report, diagnostics.Cancelled("Dateiauswahl abgebrochen")
+		return report, diagnostics.Cancelled("File selection cancelled")
 	}
 	f, e := os.Open(path)
 	if e != nil {
-		return report, fmt.Errorf("CSV konnte nicht geöffnet werden: %w", e)
+		return report, fmt.Errorf("Could not open CSV: %w", e)
 	}
 	defer func() {
 		if e := f.Close(); e != nil {
-			a.report("CSV-Datei schließen", e)
+			a.report("Close CSV file", e)
 		}
 	}()
 	b, e := io.ReadAll(io.LimitReader(f, outreach.MaxCSVBytes+1))
 	if e != nil {
-		return report, fmt.Errorf("CSV konnte nicht gelesen werden: %w", e)
+		return report, fmt.Errorf("Could not read CSV: %w", e)
 	}
 	report, err = job.Session.Import(b, filepath.Base(path), verified)
 	if saveErr := a.jobs.SaveReport(job); saveErr != nil {
@@ -190,7 +190,7 @@ func (a *App) ChooseCSV(id string, verified bool) (report outreach.Report, err e
 	return report, err
 }
 func (a *App) FilterContacts(id string, verified bool) (report outreach.Report, err error) {
-	defer func() { err = a.report("Kontakte filtern · "+id, err) }()
+	defer func() { err = a.report("Filter contacts · "+id, err) }()
 	if err = a.ready(); err != nil {
 		return
 	}
@@ -206,7 +206,7 @@ func (a *App) FilterContacts(id string, verified bool) (report outreach.Report, 
 	return report, err
 }
 func (a *App) Preview(id string, r outreach.Request) (plan outreach.Plan, err error) {
-	defer func() { err = a.report("Nachrichtenvorschau prüfen · "+id, err, requestPrivate(r)...) }()
+	defer func() { err = a.report("Check message preview · "+id, err, requestPrivate(r)...) }()
 	if err = a.ready(); err != nil {
 		return
 	}
@@ -222,9 +222,9 @@ func credentialID(c outreach.Config) string {
 }
 func (a *App) CheckConnection(id string, c outreach.Config) (err error) {
 	defer func() {
-		operation := "SMTP-Verbindung prüfen"
+		operation := "Check SMTP connection"
 		if c.Provider == "google" {
-			operation = "Google-Verbindung prüfen"
+			operation = "Check Google connection"
 		}
 		err = a.report(operation+" · "+id, err, c.Password, c.Username, c.Sender(), c.ReplyTo)
 	}()
@@ -244,17 +244,17 @@ func (a *App) CheckConnection(id string, c outreach.Config) (err error) {
 	}
 	if c.Remember {
 		if e := a.desktop().setPassword("Outreach", credentialID(c), c.Password); e != nil {
-			return diagnostics.New("KEYCHAIN_SAVE", "SMTP verbunden, aber Passwort nicht gespeichert", e.Error(), "Betriebssystem-Schlüsselbund entsperren oder das Speichern des Passworts deaktivieren und die Verbindung erneut prüfen.", e)
+			return diagnostics.New("KEYCHAIN_SAVE", "SMTP connected, but password not saved", e.Error(), "Unlock the system keyring or disable password storage, then check the connection again.", e)
 		}
 	} else {
 		if e := a.desktop().deletePassword("Outreach", credentialID(c)); e != nil && e != keyring.ErrNotFound {
-			return diagnostics.New("KEYCHAIN_DELETE", "Gespeichertes Passwort konnte nicht entfernt werden", e.Error(), "Zugriff auf den Betriebssystem-Schlüsselbund prüfen und erneut versuchen.", e)
+			return diagnostics.New("KEYCHAIN_DELETE", "Could not remove saved password", e.Error(), "Check access to the system keyring and try again.", e)
 		}
 	}
 	return nil
 }
 func (a *App) LoadPassword(c outreach.Config) (password string, err error) {
-	defer func() { err = a.report("Schlüsselbund lesen", err, c.Password, c.Username, c.Sender()) }()
+	defer func() { err = a.report("Read keyring", err, c.Password, c.Username, c.Sender()) }()
 	if err = a.ready(); err != nil {
 		return
 	}
@@ -263,12 +263,12 @@ func (a *App) LoadPassword(c outreach.Config) (password string, err error) {
 	}
 	password, e := a.desktop().getPassword("Outreach", credentialID(c))
 	if e != nil {
-		return "", diagnostics.New("KEYCHAIN_READ", "Gespeichertes Passwort nicht verfügbar", e.Error(), "Passwort erneut eingeben oder den Betriebssystem-Schlüsselbund entsperren.", e)
+		return "", diagnostics.New("KEYCHAIN_READ", "Saved password unavailable", e.Error(), "Enter the password again or unlock the system keyring.", e)
 	}
 	return password, nil
 }
 func (a *App) SendTest(id string, r outreach.Request, index int, to string) (token string, err error) {
-	defer func() { err = a.report("Testmail senden · "+id, err, append(requestPrivate(r), to)...) }()
+	defer func() { err = a.report("Send test email · "+id, err, append(requestPrivate(r), to)...) }()
 	if err = a.ready(); err != nil {
 		return
 	}
@@ -280,7 +280,7 @@ func (a *App) SendTest(id string, r outreach.Request, index int, to string) (tok
 	return job.Session.Test(context.Background(), r, index, to)
 }
 func (a *App) Start(id string, r outreach.Request, token string) (err error) {
-	defer func() { err = a.report("Versand starten · "+id, err, requestPrivate(r)...) }()
+	defer func() { err = a.report("Start sending · "+id, err, requestPrivate(r)...) }()
 	if err = a.ready(); err != nil {
 		return
 	}
@@ -295,19 +295,19 @@ func (a *App) Start(id string, r outreach.Request, token string) (err error) {
 	}
 	historyNotice := ""
 	if p.Report.PreviouslyContacted > 0 {
-		historyNotice = fmt.Sprintf("\n%d Kontakte wurden bereits angeschrieben oder haben einen unklaren Versandstatus. Identische Nachrichten bleiben über alle Jobs und Absender hinweg gesperrt. Geänderte Nachrichten können bei einem neuen Versandplan erneut versendet werden.\n", p.Report.PreviouslyContacted)
+		historyNotice = fmt.Sprintf("\n%d contacts have already been contacted or have an uncertain delivery status. Identical messages remain blocked across all jobs and senders. Changed messages can be sent with a new sending plan.\n", p.Report.PreviouslyContacted)
 	}
-	answer, e := a.desktop().message(a.ctx, runtime.MessageDialogOptions{Type: runtime.QuestionDialog, Title: "Outreach-Versand starten?", Message: fmt.Sprintf("%d geprüfte Kontakte. Absender: %s\n\nBereits bearbeitete Einträge desselben Versandplans werden übersprungen. %d ausgeschlossene CSV-Einträge werden nicht angeschrieben. Jetzt starten oder fortsetzen?", len(p.Messages), r.Config.Sender(), len(p.Report.Issues)) + historyNotice, Buttons: []string{"Abbrechen", "Versand starten"}, DefaultButton: "Abbrechen", CancelButton: "Abbrechen"})
+	answer, e := a.desktop().message(a.ctx, runtime.MessageDialogOptions{Type: runtime.QuestionDialog, Title: "Start outreach?", Message: fmt.Sprintf("%d validated contacts. Sender: %s\n\nPreviously processed entries in this plan will be skipped. %d excluded CSV entries will not be contacted. Start or resume now?", len(p.Messages), r.Config.Sender(), len(p.Report.Issues)) + historyNotice, Buttons: []string{"Cancel", "Start sending"}, DefaultButton: "Cancel", CancelButton: "Cancel"})
 	if e != nil {
 		return e
 	}
-	if answer != "Versand starten" {
-		return diagnostics.Cancelled("Versandstart abgebrochen")
+	if answer != "Start sending" {
+		return diagnostics.Cancelled("Sending cancelled")
 	}
 	return a.jobs.Start(job, r, token)
 }
 func (a *App) Stop(id string) (err error) {
-	defer func() { err = a.report("Versand stoppen", err) }()
+	defer func() { err = a.report("Stop sending", err) }()
 	if err = a.ready(); err != nil {
 		return
 	}
@@ -324,20 +324,20 @@ func (a *App) Stop(id string) (err error) {
 func (a *App) ReportClientError(code string) diagnostics.Problem {
 	switch code {
 	case "UI_BATCH_RANGE":
-		return *a.reporter.Report("Batchpause prüfen", diagnostics.New(code, "Ungültige Batchpause", "Batchpause zwischen 0 und 24 Stunden eingeben.", "Eine Zahl zwischen 0 und 24 Stunden verwenden.", nil))
+		return *a.reporter.Report("Check batch pause", diagnostics.New(code, "Invalid batch pause", "Enter a batch pause between 0 and 24 hours.", "Use a number between 0 and 24 hours.", nil))
 	case "UI_BATCH_PRECISION":
-		return *a.reporter.Report("Batchpause prüfen", diagnostics.New(code, "Ungültige Batchpause", "Batchpause minutengenau eingeben, z. B. 0,5 oder 1,5 Stunden.", "Die Pause muss einer ganzen Anzahl Minuten entsprechen.", nil))
+		return *a.reporter.Report("Check batch pause", diagnostics.New(code, "Invalid batch pause", "Enter a batch pause in whole minutes, such as 0.5 or 1.5 hours.", "The pause must equal a whole number of minutes.", nil))
 	case "UI_NO_CONTACTS":
-		return *a.reporter.Report("Kontakte prüfen", diagnostics.New(code, "Keine freigegebenen Kontakte", "Keine freigegebenen Kontakte. Filter und Ausschlüsse prüfen.", "Kontaktliste und Verifizierungsfilter prüfen.", nil))
+		return *a.reporter.Report("Check contacts", diagnostics.New(code, "No eligible contacts", "No eligible contacts. Check filters and exclusions.", "Check the contact list and verification filter.", nil))
 	case "UI_INPUT":
-		return *a.reporter.Report("Eingabe prüfen", diagnostics.New(code, "Ungültige Eingabe in der Oberfläche", "Eine Eingabe konnte nicht für die Aktion übernommen werden.", "Die in der Oberfläche genannte Eingabe korrigieren.", nil))
+		return *a.reporter.Report("Check input", diagnostics.New(code, "Invalid input", "An input could not be used for this action.", "Correct the input indicated in the app.", nil))
 	default:
-		return *a.reporter.Report("Oberfläche", diagnostics.New("UI_RUNTIME", "Unerwarteter Fehler in der Oberfläche", "Eine Aktion der Oberfläche konnte nicht abgeschlossen werden. Formularinhalte werden nicht protokolliert.", "Gespeicherten Versandstatus prüfen. Bei wiederholtem Auftreten Fehler-ID zur Diagnose verwenden.", nil))
+		return *a.reporter.Report("Interface", diagnostics.New("UI_RUNTIME", "Unexpected interface error", "An interface action could not be completed. Form contents are not logged.", "Check the saved delivery status. If the problem persists, use the error ID for diagnosis.", nil))
 	}
 }
 
 func (a *App) DiscardEmptyJob(id string) (err error) {
-	defer func() { err = a.report("Leeren Entwurf verwerfen · "+id, err) }()
+	defer func() { err = a.report("Discard empty draft · "+id, err) }()
 	if err = a.ready(); err != nil {
 		return
 	}
@@ -345,7 +345,7 @@ func (a *App) DiscardEmptyJob(id string) (err error) {
 }
 
 func (a *App) DeleteJob(id string) (err error) {
-	defer func() { err = a.report("Job löschen · "+id, err) }()
+	defer func() { err = a.report("Delete job · "+id, err) }()
 	if err = a.ready(); err != nil {
 		return
 	}

@@ -60,17 +60,17 @@ func New(vault Vault) *Client {
 		userinfo: "https://openidconnect.googleapis.com/v1/userinfo", sendURL: "https://gmail.googleapis.com/gmail/v1/users/me/messages/send", tokens: map[string]*oauth2.Token{}}
 }
 func problem(code, details, hint string) error {
-	return diagnostics.New(code, "Google-Verbindung fehlgeschlagen", details, hint, nil)
+	return diagnostics.New(code, "Google connection failed", details, hint, nil)
 }
 func vaultError() error {
-	return problem("GOOGLE_KEYCHAIN", "Google-Zugangsdaten konnten nicht im Betriebssystem-Schlüsselbund verarbeitet werden.", "Schlüsselbund entsperren und erneut versuchen.")
+	return problem("GOOGLE_KEYCHAIN", "Could not access Google credentials in the system keyring.", "Unlock the system keyring and try again.")
 }
 func (g *Client) ImportClient(data []byte) error {
 	var file struct {
 		Installed *clientConfig `json:"installed"`
 	}
 	if len(data) > 65536 || json.Unmarshal(data, &file) != nil || file.Installed == nil || !strings.HasSuffix(file.Installed.ID, ".apps.googleusercontent.com") || file.Installed.Secret == "" || strings.ContainsAny(file.Installed.ID, "\r\n\t ") {
-		return problem("GOOGLE_CLIENT", "Keine gültige OAuth-JSON für eine Desktop-App.", "In Google Cloud einen Client vom Typ Desktop-App erstellen und dessen JSON auswählen.")
+		return problem("GOOGLE_CLIENT", "Invalid OAuth JSON for a desktop app.", "Create a Desktop app client in Google Cloud and select its JSON file.")
 	}
 	// Ignore URLs in imported files: credentials are sent only to the fixed Google endpoints.
 	b, _ := json.Marshal(file.Installed)
@@ -87,7 +87,7 @@ func (g *Client) configured() (clientConfig, error) {
 	raw, err := g.vault.Get("client")
 	var c clientConfig
 	if err != nil || json.Unmarshal([]byte(raw), &c) != nil || c.ID == "" || c.Secret == "" {
-		return c, problem("GOOGLE_CLIENT_MISSING", "Google OAuth ist noch nicht eingerichtet oder der Schlüsselbund ist gesperrt.", "OAuth-JSON importieren oder Schlüsselbund entsperren.")
+		return c, problem("GOOGLE_CLIENT_MISSING", "Google OAuth is not configured or the system keyring is locked.", "Import the OAuth JSON or unlock the system keyring.")
 	}
 	return c, nil
 }
@@ -109,15 +109,15 @@ func randomID() string {
 func authError(code string) error {
 	switch code {
 	case "access_denied":
-		return diagnostics.Cancelled("Google-Anmeldung abgebrochen oder nicht erlaubt")
+		return diagnostics.Cancelled("Google sign-in cancelled or denied")
 	case "admin_policy_enforced", "org_internal":
-		return problem("GOOGLE_POLICY", "Google hat die Anmeldung durch eine Organisationsrichtlinie blockiert.", "Für dieses Konto ist eine Freigabe durch den Workspace-Administrator erforderlich.")
+		return problem("GOOGLE_POLICY", "Google blocked sign-in due to an organization policy.", "This account requires approval from a Workspace administrator.")
 	case "invalid_grant":
-		return problem("GOOGLE_RECONNECT", "Die Google-Freigabe ist abgelaufen oder wurde widerrufen.", "Google-Konto erneut verbinden, Verbindung und Testmail erneut prüfen. Im Google-Testmodus laufen Freigaben nach sieben Tagen ab.")
+		return problem("GOOGLE_RECONNECT", "Google authorization has expired or been revoked.", "Reconnect your Google account, check the connection and send a new test email. Google authorizations expire after seven days in Testing mode.")
 	case "invalid_client", "unauthorized_client":
-		return problem("GOOGLE_CLIENT", "Google hat den OAuth-Client abgelehnt.", "Desktop-Client-JSON und Google-Cloud-Konfiguration prüfen.")
+		return problem("GOOGLE_CLIENT", "Google rejected the OAuth client.", "Check the Desktop client JSON and Google Cloud configuration.")
 	default:
-		return problem("GOOGLE_AUTH", "Google konnte die Anmeldung oder Token-Erneuerung nicht abschließen.", "Internetverbindung und Google-Freigabe prüfen. Keine Nachricht wurde hierbei versendet.")
+		return problem("GOOGLE_AUTH", "Google could not complete sign-in or token refresh.", "Check your internet connection and Google authorization. No message was sent during this step.")
 	}
 }
 func tokenError(err error) error {
@@ -138,7 +138,7 @@ func (g *Client) Login(ctx context.Context, open func(string) error) (outreach.C
 	defer cancel()
 	listener, err := net.Listen("tcp4", "127.0.0.1:0")
 	if err != nil {
-		return outreach.Config{}, problem("GOOGLE_CALLBACK", "Lokaler Anmeldeport konnte nicht geöffnet werden.", "Lokale Firewall prüfen und erneut versuchen.")
+		return outreach.Config{}, problem("GOOGLE_CALLBACK", "Could not open the local sign-in port.", "Check your local firewall and try again.")
 	}
 	defer listener.Close()
 	o := g.oauth(c)
@@ -166,7 +166,7 @@ func (g *Client) Login(ctx context.Context, open func(string) error) (outreach.C
 		}
 		select {
 		case result <- callback{q.Get("code"), q.Get("error")}:
-			fmt.Fprint(w, "Anmeldung empfangen. Zurueck zu Outreach wechseln.")
+			fmt.Fprint(w, "Sign-in received. Return to Outreach.")
 		default:
 			http.Error(w, "Already received", 409)
 		}
@@ -175,13 +175,13 @@ func (g *Client) Login(ctx context.Context, open func(string) error) (outreach.C
 	defer server.Close()
 	link := o.AuthCodeURL(state, oauth2.AccessTypeOffline, oauth2.S256ChallengeOption(verifier), oauth2.SetAuthURLParam("prompt", "consent select_account"))
 	if err = open(link); err != nil {
-		return outreach.Config{}, problem("GOOGLE_BROWSER", "Der Browser konnte nicht geöffnet werden.", "Standardbrowser prüfen und erneut anmelden.")
+		return outreach.Config{}, problem("GOOGLE_BROWSER", "Could not open the browser.", "Check your default browser and sign in again.")
 	}
 	var answer callback
 	select {
 	case answer = <-result:
 	case <-ctx.Done():
-		return outreach.Config{}, problem("GOOGLE_TIMEOUT", "Die Google-Anmeldung wurde nicht rechtzeitig abgeschlossen.", "Erneut anmelden und den Vorgang im Browser abschließen.")
+		return outreach.Config{}, problem("GOOGLE_TIMEOUT", "Google sign-in timed out.", "Sign in again and complete the process in your browser.")
 	}
 	if answer.failure != "" {
 		return outreach.Config{}, authError(answer.failure)
@@ -192,10 +192,10 @@ func (g *Client) Login(ctx context.Context, open func(string) error) (outreach.C
 	}
 	granted, _ := token.Extra("scope").(string)
 	if !containsScope(granted, SendScope) {
-		return outreach.Config{}, problem("GOOGLE_SCOPE", "Die Gmail-Sendeberechtigung wurde nicht erteilt.", "Erneut verbinden und das Senden von E-Mails erlauben.")
+		return outreach.Config{}, problem("GOOGLE_SCOPE", "Gmail sending permission was not granted.", "Reconnect and allow sending emails.")
 	}
 	if token.RefreshToken == "" {
-		return outreach.Config{}, problem("GOOGLE_OFFLINE", "Google hat keine dauerhafte Freigabe erteilt.", "Outreach in den Google-Kontoverbindungen entfernen und erneut verbinden.")
+		return outreach.Config{}, problem("GOOGLE_OFFLINE", "Google did not grant offline access.", "Remove Outreach from your Google Account connections, then reconnect.")
 	}
 	i, err := g.identify(ctx, token.AccessToken)
 	if err != nil {
@@ -230,10 +230,10 @@ func (g *Client) identify(ctx context.Context, access string) (identity, error) 
 	}
 	defer res.Body.Close()
 	if res.StatusCode != 200 {
-		return i, apiError("Konto prüfen", res.StatusCode, res.Body)
+		return i, apiError("Check account", res.StatusCode, res.Body)
 	}
 	if json.NewDecoder(io.LimitReader(res.Body, 65536)).Decode(&i) != nil || !i.Verified || i.Subject == "" {
-		return i, problem("GOOGLE_IDENTITY", "Google-Konto konnte nicht eindeutig bestätigt werden.", "Mit einem bestätigten Google-Konto erneut anmelden.")
+		return i, problem("GOOGLE_IDENTITY", "Could not verify the Google account.", "Sign in again with a verified Google account.")
 	}
 	i.Email, err = outreach.Address(i.Email)
 	if err != nil {
@@ -250,10 +250,10 @@ func (g *Client) access(ctx context.Context, c outreach.Config) (string, credent
 	raw, err := g.vault.Get("account/" + c.GoogleGrant)
 	var saved credential
 	if err != nil || json.Unmarshal([]byte(raw), &saved) != nil || saved.Refresh == "" {
-		return "", saved, problem("GOOGLE_RECONNECT", "Google-Freigabe fehlt oder der Schlüsselbund ist gesperrt.", "Schlüsselbund entsperren oder Google-Konto erneut verbinden.")
+		return "", saved, problem("GOOGLE_RECONNECT", "Google authorization is missing or the system keyring is locked.", "Unlock the system keyring or reconnect your Google account.")
 	}
 	if !strings.EqualFold(c.Username, saved.Email) || saved.Subject == "" {
-		return "", saved, problem("GOOGLE_ACCOUNT", "Absender und Google-Freigabe stimmen nicht überein.", "Das gewünschte Google-Konto erneut verbinden.")
+		return "", saved, problem("GOOGLE_ACCOUNT", "The sender does not match the authorized Google account.", "Reconnect the Google account you want to use.")
 	}
 	token := g.tokens[c.GoogleGrant]
 	if token == nil {
@@ -285,7 +285,7 @@ func (g *Client) Check(ctx context.Context, c outreach.Config) error {
 		return err
 	}
 	if i.Subject != saved.Subject || i.Email != saved.Email {
-		return problem("GOOGLE_ACCOUNT", "Google-Konto hat sich geändert.", "Konto erneut verbinden und den Absender prüfen.")
+		return problem("GOOGLE_ACCOUNT", "The Google account has changed.", "Reconnect the account and check the sender.")
 	}
 	return nil
 }
@@ -309,27 +309,27 @@ func apiError(step string, status int, body io.Reader) error {
 		} `json:"error"`
 	}
 	_ = json.NewDecoder(io.LimitReader(body, 65536)).Decode(&response)
-	hint := "Google-Freigabe und Internetverbindung prüfen. Es erfolgt kein automatischer erneuter Versand."
+	hint := "Check Google authorization and your internet connection. Messages are not retried automatically."
 	if status == 401 {
-		hint = "Google-Konto erneut verbinden und Verbindung sowie Testmail erneut prüfen."
+		hint = "Reconnect your Google account, check the connection and send a new test email."
 	}
 	if status == 429 {
-		hint = "Google-Versandlimit erreicht. Später manuell fortsetzen; kein automatischer erneuter Versand."
+		hint = "Google sending limit reached. Resume manually later; messages are not retried automatically."
 	}
 	if status >= 500 {
-		hint = "Google meldet eine Störung. Die Nachricht könnte bereits angenommen worden sein; Status bleibt unklar und gesperrt."
+		hint = "Google reported a service error. The message may already have been accepted; its status remains uncertain and locked."
 	}
 	for _, e := range response.Error.Errors {
 		switch e.Reason {
 		case "accessNotConfigured":
-			hint = "Gmail API im Google-Cloud-Projekt aktivieren."
+			hint = "Enable the Gmail API in your Google Cloud project."
 		case "insufficientPermissions":
-			hint = "Google-Konto erneut verbinden und die Gmail-Sendeberechtigung erlauben."
+			hint = "Reconnect your Google account and grant Gmail sending permission."
 		case "domainPolicy":
-			hint = "Die Workspace-Richtlinie blockiert den Zugriff. Administrator-Freigabe erforderlich."
+			hint = "Workspace policy blocks access. Administrator approval is required."
 		case "rateLimitExceeded", "userRateLimitExceeded", "dailyLimitExceeded":
-			hint = "Google-Versandlimit erreicht. Später manuell fortsetzen; kein automatischer erneuter Versand."
+			hint = "Google sending limit reached. Resume manually later; messages are not retried automatically."
 		}
 	}
-	return problem("GOOGLE_API", fmt.Sprintf("%s: Google API antwortet mit HTTP %d.", step, status), hint)
+	return problem("GOOGLE_API", fmt.Sprintf("%s: Google API returned HTTP %d.", step, status), hint)
 }

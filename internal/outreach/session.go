@@ -34,7 +34,7 @@ func (s *Session) idle() error {
 		return e
 	}
 	if state.Running {
-		return fmt.Errorf("Versand zuerst stoppen")
+		return fmt.Errorf("Stop sending first")
 	}
 	return nil
 }
@@ -64,7 +64,7 @@ func (s *Session) Filter(verified bool) (Report, error) {
 		return Report{}, e
 	}
 	if s.raw == nil {
-		return Report{}, fmt.Errorf("CSV für eine neue Filterung erneut auswählen")
+		return Report{}, fmt.Errorf("Select the CSV again to change filtering")
 	}
 	s.tested = ""
 	r, e := ParseCSV(s.raw, s.Report.Filename, verified)
@@ -116,7 +116,7 @@ func (s *Session) Test(ctx context.Context, r Request, index int, to string) (st
 		return "", e
 	}
 	if s.checked != digest(r.Config) {
-		return "", fmt.Errorf("Verbindung für diese Einstellungen zuerst prüfen")
+		return "", fmt.Errorf("Check the connection for these settings first")
 	}
 	p, e := Prepare(r, s.Report)
 	p = scopePlan(p, s.engine.store.jobID)
@@ -124,7 +124,7 @@ func (s *Session) Test(ctx context.Context, r Request, index int, to string) (st
 		return "", e
 	}
 	if index < 0 || index >= len(p.Messages) {
-		return "", fmt.Errorf("Vorschaukontakt ungültig")
+		return "", fmt.Errorf("Invalid preview contact")
 	}
 	m, e := TestMessage(p.Messages[index], to)
 	if e != nil {
@@ -134,7 +134,7 @@ func (s *Session) Test(ctx context.Context, r Request, index int, to string) (st
 	recipient := fmt.Sprintf("%s/%d", m.To, index)
 	attempt := token + recipient
 	if s.uncertainTests[attempt] {
-		return "", fmt.Errorf("Status dieser Testmail ist unklar; kein erneuter Versand an diese Testadresse")
+		return "", fmt.Errorf("This test email has an uncertain status; sending again to this test address is blocked")
 	}
 	if s.tested == token && s.testRecipient == recipient {
 		return token, nil
@@ -145,7 +145,7 @@ func (s *Session) Test(ctx context.Context, r Request, index int, to string) (st
 		s.uncertainTests[attempt] = true
 	}
 	if result.Status != "sent" {
-		return "", fmt.Errorf("Testmail: %w", result.Err())
+		return "", fmt.Errorf("Test email: %w", result.Err())
 	}
 	s.tested = token
 	s.testRecipient = recipient
@@ -163,7 +163,7 @@ func (s *Session) Start(r Request, token string) error {
 		return e
 	}
 	if token == "" || s.tested != token || proof(r, p) != token || s.checked != digest(r.Config) {
-		return fmt.Errorf("Einstellungen geändert oder Testmail fehlt; erneut prüfen und testen")
+		return fmt.Errorf("Settings changed or test email missing; check the connection and test again")
 	}
 	return s.engine.Start(p, r.Config)
 }

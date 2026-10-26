@@ -96,27 +96,27 @@ describe('workspace', () => {
     render(App);
     await fireEvent.click(
       await screen.findByRole('button', {
-        name: /Beta.*b@example.org.*Entwurf/,
+        name: /Beta.*b@example.org.*Draft/,
       }),
     );
-    const select = await screen.findByLabelText('Absender-Konto übernehmen');
+    const select = await screen.findByLabelText('Use existing account');
     await waitFor(() =>
       expect((select as HTMLSelectElement).disabled).toBe(false),
     );
     await fireEvent.change(select, { target: { value: 'a' } });
     await waitFor(() =>
       expect(
-        (screen.getByLabelText('Passwort') as HTMLInputElement).value,
+        (screen.getByLabelText('Password') as HTMLInputElement).value,
       ).toBe('from-keyring'),
     );
     expect(api.LoadPassword).toHaveBeenCalledWith(
       expect.objectContaining({ username: 'a@example.org', password: '' }),
     );
-    expect((screen.getByLabelText('Betreff') as HTMLInputElement).value).toBe(
+    expect((screen.getByLabelText('Subject') as HTMLInputElement).value).toBe(
       'Subject Beta',
     );
     expect(
-      (screen.getByRole('button', { name: 'Senden' }) as HTMLButtonElement)
+      (screen.getByRole('button', { name: 'Send' }) as HTMLButtonElement)
         .disabled,
     ).toBe(true);
     expect(api.CheckConnection).not.toHaveBeenCalled();
@@ -126,19 +126,19 @@ describe('workspace', () => {
     jobs[0].draft.request.config.remember = true;
     vi.mocked(api.LoadPassword).mockRejectedValue({
       code: 'KEYCHAIN_READ',
-      message: 'Schlüsselbund gesperrt',
+      message: 'Keyring gesperrt',
       logged: true,
     });
     render(App);
     await fireEvent.click(
       await screen.findByRole('button', {
-        name: /Alpha.*a@example.org.*Entwurf/,
+        name: /Alpha.*a@example.org.*Draft/,
       }),
     );
     expect((await screen.findByRole('alert')).textContent).toContain(
-      'Schlüsselbund gesperrt',
+      'Keyring gesperrt',
     );
-    expect((screen.getByLabelText('Passwort') as HTMLInputElement).value).toBe(
+    expect((screen.getByLabelText('Password') as HTMLInputElement).value).toBe(
       '',
     );
     expect(api.Start).not.toHaveBeenCalled();
@@ -147,21 +147,21 @@ describe('workspace', () => {
     render(App);
     await fireEvent.click(
       await screen.findByRole('button', {
-        name: /Alpha.*a@example.org.*Entwurf/,
+        name: /Alpha.*a@example.org.*Draft/,
       }),
     );
-    await fireEvent.click(screen.getByRole('tab', { name: /Übersicht/ }));
+    await fireEvent.click(screen.getByRole('tab', { name: /Dashboard/ }));
     await fireEvent.click(
-      screen.getByRole('button', { name: 'Job löschen: Alpha' }),
+      screen.getByRole('button', { name: 'Delete job: Alpha' }),
     );
     expect(api.DeleteJob).not.toHaveBeenCalled();
-    await fireEvent.click(screen.getByRole('button', { name: 'Abbrechen' }));
+    await fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
     expect(api.DeleteJob).not.toHaveBeenCalled();
     await fireEvent.click(
-      screen.getByRole('button', { name: 'Job löschen: Alpha' }),
+      screen.getByRole('button', { name: 'Delete job: Alpha' }),
     );
     await fireEvent.click(
-      screen.getByRole('button', { name: 'Endgültig löschen: Alpha' }),
+      screen.getByRole('button', { name: 'Confirm deletion: Alpha' }),
     );
     await waitFor(() => expect(api.DeleteJob).toHaveBeenCalledWith('a'));
     await waitFor(() =>
@@ -187,36 +187,36 @@ describe('workspace', () => {
     );
     render(App);
     const button = await screen.findByRole('button', {
-      name: 'Job löschen: Alpha',
+      name: 'Delete job: Alpha',
     });
     expect(
       (
         screen.getByRole('button', {
-          name: 'Job löschen: Beta',
+          name: 'Delete job: Beta',
         }) as HTMLButtonElement
       ).disabled,
     ).toBe(true);
     await fireEvent.click(button);
     await fireEvent.click(
-      screen.getByRole('button', { name: 'Endgültig löschen: Alpha' }),
+      screen.getByRole('button', { name: 'Confirm deletion: Alpha' }),
     );
     expect((await screen.findByRole('alert')).textContent).toContain(
       'Datenbank voll',
     );
     expect(jobs).toHaveLength(2);
     expect(
-      screen.getByRole('button', { name: /Alpha.*a@example.org.*Entwurf/ }),
+      screen.getByRole('button', { name: /Alpha.*a@example.org.*Draft/ }),
     ).toBeTruthy();
   });
   it('opens existing drafts without importing, connecting or sending', async () => {
     render(App);
     await fireEvent.click(
       await screen.findByRole('button', {
-        name: /Alpha.*a@example.org.*Entwurf/,
+        name: /Alpha.*a@example.org.*Draft/,
       }),
     );
     await waitFor(() =>
-      expect((screen.getByLabelText('Betreff') as HTMLInputElement).value).toBe(
+      expect((screen.getByLabelText('Subject') as HTMLInputElement).value).toBe(
         'Subject Alpha',
       ),
     );
@@ -225,12 +225,12 @@ describe('workspace', () => {
     expect(api.SendTest).not.toHaveBeenCalled();
     expect(api.Start).not.toHaveBeenCalled();
     await fireEvent.click(
-      screen.getByRole('button', { name: 'Tab schließen: Alpha' }),
+      screen.getByRole('button', { name: 'Close tab: Alpha' }),
     );
     await waitFor(() =>
       expect(
         screen
-          .getByRole('tab', { name: /Übersicht/ })
+          .getByRole('tab', { name: /Dashboard/ })
           .getAttribute('aria-selected'),
       ).toBe('true'),
     );
@@ -239,31 +239,31 @@ describe('workspace', () => {
   });
   it('hides untouched drafts from the dashboard and offers creation only in the tab bar', async () => {
     jobs = ['a', 'b', 'c'].map((id) => ({
-      ...job(id, 'Neuer Job', ''),
+      ...job(id, 'New job', ''),
       empty: true,
     }));
     render(App);
-    await screen.findByText('Keine Jobs.');
-    expect(screen.queryByRole('button', { name: 'Neuer Job' })).toBeNull();
-    expect(screen.queryByRole('tab', { name: /Neuer Job/ })).toBeNull();
+    await screen.findByText('No jobs yet.');
+    expect(screen.queryByRole('button', { name: 'New job' })).toBeNull();
+    expect(screen.queryByRole('tab', { name: /New job/ })).toBeNull();
     expect(
-      screen.getAllByRole('button', { name: 'Neuen Job anlegen' }),
+      screen.getAllByRole('button', { name: 'Create new job' }),
     ).toHaveLength(1);
   });
   it('keeps a tab open when saving its edits fails during close', async () => {
     render(App);
     await fireEvent.click(
       await screen.findByRole('button', {
-        name: /Alpha.*a@example.org.*Entwurf/,
+        name: /Alpha.*a@example.org.*Draft/,
       }),
     );
     const save = await screen.findByRole('button', {
-      name: 'Entwurf speichern',
+      name: 'Save draft',
     });
     await waitFor(() =>
       expect((save as HTMLButtonElement).disabled).toBe(false),
     );
-    await fireEvent.input(screen.getByLabelText('Jobname'), {
+    await fireEvent.input(screen.getByLabelText('Job name'), {
       target: { value: 'Nicht verlieren' },
     });
     vi.mocked(api.SaveDraft).mockRejectedValue({
@@ -272,7 +272,7 @@ describe('workspace', () => {
       logged: true,
     });
     await fireEvent.click(
-      screen.getByRole('button', { name: 'Tab schließen: Alpha' }),
+      screen.getByRole('button', { name: 'Close tab: Alpha' }),
     );
     await waitFor(() => expect(api.SaveDraft).toHaveBeenCalled());
     await waitFor(() =>
@@ -282,7 +282,7 @@ describe('workspace', () => {
           .some((alert) => alert.textContent?.includes('Datenbank voll')),
       ).toBe(true),
     );
-    expect((screen.getByLabelText('Jobname') as HTMLInputElement).value).toBe(
+    expect((screen.getByLabelText('Job name') as HTMLInputElement).value).toBe(
       'Nicht verlieren',
     );
     expect(
@@ -294,16 +294,16 @@ describe('workspace', () => {
     render(App);
     await fireEvent.click(
       await screen.findByRole('button', {
-        name: /Beta.*b@example.org.*Entwurf/,
+        name: /Beta.*b@example.org.*Draft/,
       }),
     );
     const save = await screen.findByRole('button', {
-      name: 'Entwurf speichern',
+      name: 'Save draft',
     });
     await waitFor(() =>
       expect((save as HTMLButtonElement).disabled).toBe(false),
     );
-    await fireEvent.input(screen.getByLabelText('Jobname'), {
+    await fireEvent.input(screen.getByLabelText('Job name'), {
       target: { value: 'Beta geändert' },
     });
     vi.mocked(api.SaveDraft).mockRejectedValueOnce({
@@ -326,15 +326,15 @@ describe('workspace', () => {
   it('shows an empty dashboard and creates a draft with no send authorization', async () => {
     jobs = [];
     render(App);
-    await screen.findByText('Keine Jobs.');
+    await screen.findByText('No jobs yet.');
     await fireEvent.click(
-      screen.getByRole('button', { name: 'Neuen Job anlegen' }),
+      screen.getByRole('button', { name: 'Create new job' }),
     );
-    await screen.findByRole('tab', { name: /Neuer Job/ });
+    await screen.findByRole('tab', { name: /New job/ });
     expect(
       (
         screen.getByRole('button', {
-          name: 'Senden',
+          name: 'Send',
         }) as HTMLButtonElement
       ).disabled,
     ).toBe(true);
@@ -351,12 +351,23 @@ describe('workspace', () => {
         updated: '',
       },
     ];
-    expect(jobStatus(j)).toBe('Pausiert · Fehler prüfen');
+    expect(jobStatus(j)).toBe('Paused · Check error');
     expect(jobCounts(j).uncertain).toBe(1);
     j.state.deliveries[0].status = 'sent';
-    expect(jobStatus(j)).toBe('Abgeschlossen');
+    expect(jobStatus(j)).toBe('Completed');
     j.state.running = true;
     j.state.nextAt = new Date(Date.now() + 60000).toISOString();
-    expect(jobStatus(j)).toBe('Wartet · Versandpause');
+    expect(jobStatus(j)).toBe('Waiting · Sending pause');
   });
+});
+
+it('shows Google as the account provider without an SMTP warning', async () => {
+  jobs[0].draft.request.config.provider = 'google';
+  jobs[0].draft.request.config.googleGrant = 'synthetic-grant';
+  jobs[0].draft.request.config.host = '';
+  render(App);
+  await screen.findByRole('button', {
+    name: /a@example.org.*Google \/ Workspace.*Available/,
+  });
+  expect(screen.queryByText(/SMTP server missing/)).toBeNull();
 });

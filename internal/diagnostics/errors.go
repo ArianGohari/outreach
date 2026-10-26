@@ -53,7 +53,7 @@ func (p *Problem) Error() string {
 		msg += "\n" + p.Hint
 	}
 	if p.ID != "" {
-		msg += "\nFehler-ID: " + p.ID
+		msg += "\nError ID: " + p.ID
 	}
 	return msg
 }
@@ -74,11 +74,11 @@ func Redact(value string, private ...string) string {
 	}
 	sort.Slice(replacements, func(i, j int) bool { return len(replacements[i]) > len(replacements[j]) })
 	for _, v := range replacements {
-		value = strings.ReplaceAll(value, v, "[geschützt]")
+		value = strings.ReplaceAll(value, v, "[redacted]")
 	}
-	value = authPattern.ReplaceAllString(value, "AUTH [geschützt]")
-	value = credentialPattern.ReplaceAllString(value, "$1=[geschützt]")
-	value = emailPattern.ReplaceAllString(value, "[E-Mail-Adresse]")
+	value = authPattern.ReplaceAllString(value, "AUTH [redacted]")
+	value = credentialPattern.ReplaceAllString(value, "$1=[redacted]")
+	value = emailPattern.ReplaceAllString(value, "[email address]")
 	value = strings.Map(func(r rune) rune {
 		if unicode.IsControl(r) && r != '\n' && r != '\t' {
 			return -1
@@ -86,7 +86,7 @@ func Redact(value string, private ...string) string {
 		return r
 	}, value)
 	if len([]rune(value)) > 6000 {
-		value = string([]rune(value)[:6000]) + " … [gekürzt]"
+		value = string([]rune(value)[:6000]) + " … [truncated]"
 	}
 	return value
 }
@@ -113,7 +113,7 @@ func (r *Reporter) Report(operation string, err error, private ...string) *Probl
 	if errors.As(err, &existing) {
 		return existing
 	}
-	p := &Problem{Level: "error", Code: "OPERATION_FAILED", Operation: operation, Message: operation + " fehlgeschlagen", Details: err.Error(), Hint: hintFor(operation), Time: time.Now().UTC().Format(time.RFC3339Nano)}
+	p := &Problem{Level: "error", Code: "OPERATION_FAILED", Operation: operation, Message: operation + " failed", Details: err.Error(), Hint: hintFor(operation), Time: time.Now().UTC().Format(time.RFC3339Nano)}
 	var fault *Fault
 	if errors.As(err, &fault) {
 		p.Code = fault.Code
@@ -126,30 +126,30 @@ func (r *Reporter) Report(operation string, err error, private ...string) *Probl
 	var sqlErr interface{ Code() int }
 	if errors.As(err, &sqlErr) {
 		p.Code = "DATABASE_ERROR"
-		p.Message = "Lokale Datenbank konnte nicht verarbeitet werden"
-		p.Hint = "Nicht erneut senden, bis die Datenbank wieder verfügbar ist. Die Versandhistorie nicht löschen."
+		p.Message = "Could not access local database"
+		p.Hint = "Do not send again until the database is available. Do not delete sending history."
 		switch sqlErr.Code() & 255 {
 		case 13:
 			p.Code = "DATABASE_FULL"
-			p.Hint = "Speicherplatz auf dem Laufwerk freigeben und die App erneut öffnen. Versandhistorie behalten."
+			p.Hint = "Free disk space and reopen the app. Keep sending history."
 		case 8:
 			p.Code = "DATABASE_READ_ONLY"
-			p.Hint = "Schreibrechte für den Outreach-Datenordner prüfen. Die Datenbank darf nicht schreibgeschützt sein."
+			p.Hint = "Check write permissions for the Outreach data directory. The database must be writable."
 		case 5, 6:
 			p.Code = "DATABASE_BUSY"
-			p.Hint = "Weitere Outreach-Instanzen oder Programme schließen, die dieselbe Datenbank verwenden."
+			p.Hint = "Close other Outreach instances or programs using the same database."
 		case 11, 26:
 			p.Code = "DATABASE_CORRUPT"
-			p.Hint = "Versand nicht fortsetzen. Datenbank und Protokoll zur Diagnose sichern; die Versandhistorie nicht zurücksetzen."
+			p.Hint = "Do not resume sending. Back up the database and log for diagnosis; do not reset sending history."
 		}
 	}
 	switch {
 	case errors.Is(err, os.ErrPermission):
 		p.Code = "FILE_PERMISSION"
-		p.Hint = "Zugriffsrechte für die betroffene Datei bzw. den Ordner prüfen."
+		p.Hint = "Check access permissions for the affected file or folder."
 	case errors.Is(err, os.ErrNotExist):
 		p.Code = "FILE_NOT_FOUND"
-		p.Hint = "Die Datei wurde verschoben oder gelöscht. Eine vorhandene Datei erneut auswählen."
+		p.Hint = "The file was moved or deleted. Select an existing file."
 	}
 	p.Operation = Redact(p.Operation, private...)
 	p.Message = Redact(p.Message, private...)
@@ -179,32 +179,33 @@ func (r *Reporter) Report(operation string, err error, private ...string) *Probl
 		p.ID = fmt.Sprintf("%d", time.Now().UnixNano())
 	}
 	if r == nil || r.sink == nil {
-		p.LogIssue = "Lokales Fehlerprotokoll ist nicht verfügbar."
+		p.LogIssue = "Local error log is unavailable."
 		return p
 	}
 	p.LogPath = r.sink.Path()
 	p.Logged = true
 	if e := r.sink.Append(*p); e != nil {
 		p.Logged = false
-		p.LogIssue = "Fehlerprotokoll konnte nicht geschrieben werden: " + Redact(e.Error(), private...)
+		p.LogIssue = "Could not write error log: " + Redact(e.Error(), private...)
 		fmt.Fprintln(os.Stderr, p.Code, p.ID, p.LogIssue)
 	}
 	return p
 }
 
 func hintFor(operation string) string {
+	operation = strings.ToLower(operation)
 	switch {
-	case strings.Contains(operation, "CSV") || strings.Contains(operation, "Kontakte"):
-		return "CSV-Kopfzeile, genannte Zeile und Filter prüfen. Datei als UTF-8 mit Komma-Trennzeichen speichern."
-	case strings.Contains(operation, "Vorschau") || strings.Contains(operation, "Nachricht"):
-		return "Genannten Platzhalter und CSV-Zeile prüfen. Für leere Felder einen Ersatzwert verwenden, etwa {{First Name|zusammen}}."
-	case strings.Contains(operation, "Testmail"):
-		return "SMTP-Verbindung, Testadresse und Template prüfen. Bei unklarem Versandstatus keinen erneuten Versuch auslösen."
-	case strings.Contains(operation, "Versand"):
-		return "Die Nachricht wurde nicht automatisch erneut gesendet. Fehlerursache zuerst beheben und den gespeicherten Status prüfen."
-	case strings.Contains(operation, "Schlüsselbund"):
-		return "Betriebssystem-Schlüsselbund entsperren oder das Passwort erneut eingeben."
+	case strings.Contains(operation, "csv") || strings.Contains(operation, "contacts"):
+		return "Check the CSV header, indicated row and filters. Save as UTF-8 with comma separators."
+	case strings.Contains(operation, "preview") || strings.Contains(operation, "message"):
+		return "Check the indicated placeholder and CSV row. Use a fallback for empty fields, such as {{First Name|there}}."
+	case strings.Contains(operation, "test email"):
+		return "Check the connection, test address and template. Do not retry if delivery status is uncertain."
+	case strings.Contains(operation, "sending") || strings.Contains(operation, "delivery") || strings.Contains(operation, "recipient"):
+		return "The message was not retried automatically. Fix the cause and check the saved status first."
+	case strings.Contains(operation, "keyring"):
+		return "Unlock the system keyring or enter the password again."
 	default:
-		return "Angaben prüfen. Bei wiederholtem Auftreten die Fehler-ID und das lokale Protokoll zur Diagnose verwenden."
+		return "Check your settings. If the problem persists, use the error ID and local log for diagnosis."
 	}
 }

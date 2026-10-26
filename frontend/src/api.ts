@@ -156,13 +156,13 @@ export function jobStatus(job: JobView): string {
   const c = jobCounts(job);
   if (job.state.running)
     return job.state.nextAt && new Date(job.state.nextAt).getTime() > Date.now()
-      ? 'Wartet · Versandpause'
-      : 'Läuft';
+      ? 'Waiting · Sending pause'
+      : 'Running';
   if (job.state.problem || job.state.error || c.uncertain || c.failed)
-    return 'Pausiert · Fehler prüfen';
-  if (job.state.deliveries.length && c.done === c.total) return 'Abgeschlossen';
-  if (job.state.plan) return 'Pausiert';
-  return 'Entwurf';
+    return 'Paused · Check error';
+  if (job.state.deliveries.length && c.done === c.total) return 'Completed';
+  if (job.state.plan) return 'Paused';
+  return 'Draft';
 }
 declare global {
   interface Window {
@@ -176,7 +176,7 @@ export function backend(): Bridge {
   const app = window.go?.main.App;
   if (!app)
     throw new Error(
-      'Bitte die Desktop-App öffnen. Im Browser ist kein SMTP-Versand verfügbar.',
+      'Open the desktop app. Sending is unavailable in the browser.',
     );
   return app;
 }
@@ -184,11 +184,11 @@ export function backend(): Bridge {
 export function batchHoursToMinutes(hours: number): number {
   const minutes = hours * 60;
   if (!Number.isFinite(hours) || hours < 0 || hours > 24) {
-    throw new Error('Batchpause zwischen 0 und 24 Stunden eingeben.');
+    throw new Error('Enter a batch pause between 0 and 24 hours.');
   }
   if (Math.abs(minutes - Math.round(minutes)) > 1e-7) {
     throw new Error(
-      'Batchpause minutengenau eingeben, z. B. 0,5 oder 1,5 Stunden.',
+      'Enter a batch pause in whole minutes, such as 0.5 or 1.5 hours.',
     );
   }
   return Math.round(minutes);
@@ -210,10 +210,10 @@ export function canStart(
   );
 }
 export const statusLabel: Record<string, string> = {
-  pending: 'Ausstehend',
-  sending: 'Wird übertragen',
-  sent: 'An Versanddienst übergeben',
-  failed: 'Fehlgeschlagen',
-  uncertain: 'Unklar · gesperrt',
-  blocked: 'Doppelversand verhindert',
+  pending: 'Pending',
+  sending: 'Sending',
+  sent: 'Accepted by provider',
+  failed: 'Failed',
+  uncertain: 'Uncertain · Locked',
+  blocked: 'Duplicate prevented',
 };

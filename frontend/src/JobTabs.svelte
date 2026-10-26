@@ -65,7 +65,7 @@
   }
 </script>
 
-<nav class="job-tabs" aria-label="Offene Ansichten">
+<nav class="job-tabs" aria-label="Open views">
   <div class="tab-track">
     <div
       class="tab-list"
@@ -107,11 +107,11 @@
                 height="4.5"
                 rx="1"
               /></svg
-            >Übersicht</span
+            >Dashboard</span
           >
           <small
             >{running
-              ? `${running} ${running === 1 ? 'Job läuft' : 'Jobs laufen'}`
+              ? `${running} ${running === 1 ? 'Job running' : 'Jobs running'}`
               : `${jobs.filter((j) => !j.empty).length} Jobs`}</small
           >
         </button>
@@ -150,10 +150,8 @@
             <button
               class="close-tab"
               tabindex={active === id ? 0 : -1}
-              aria-label={'Tab schließen: ' + job.name}
-              title={job.empty
-                ? 'Leeren Entwurf schließen'
-                : 'Tab schließen · Job bleibt erhalten'}
+              aria-label={'Close tab: ' + job.name}
+              title={job.empty ? 'Close empty draft' : 'Close tab · Keep job'}
               onclick={() => void close(id)}
               ><svg
                 aria-hidden="true"
@@ -173,8 +171,8 @@
     <div class="add-slot">
       <button
         class="new-tab"
-        aria-label="Neuen Job anlegen"
-        title="Neuer Job"
+        aria-label="Create new job"
+        title="New job"
         disabled={busy}
         onclick={onCreate}
         ><svg

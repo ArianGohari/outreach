@@ -22,11 +22,11 @@ func TestReporterPreservesDetailsAndRedactsSecrets(t *testing.T) {
 	body := "CONFIDENTIAL BODY"
 	subject := "PRIVATE SUBJECT"
 	raw := fmt.Sprintf("535 5.7.8 rejected alice@example.com password=%s %s %s AUTH PLAIN %s", password, body, subject, base64.StdEncoding.EncodeToString([]byte("\x00alice@example.com\x00"+password)))
-	f := New("SMTP_AUTH", "SMTP-Anmeldung fehlgeschlagen", raw, "Passwort erneut eingeben.", errors.New(raw))
+	f := New("SMTP_AUTH", "SMTP authentication failed", raw, "Enter the password again.", errors.New(raw))
 	f.Step = "AUTH"
 	f.SMTPCode = 535
-	p := reporter.Report("SMTP prüfen", f, password, body, subject)
-	if !p.Logged || p.ID == "" || p.SMTPCode != 535 || !strings.Contains(p.Details, "5.7.8") || p.Hint != "Passwort erneut eingeben." {
+	p := reporter.Report("Check SMTP", f, password, body, subject)
+	if !p.Logged || p.ID == "" || p.SMTPCode != 535 || !strings.Contains(p.Details, "5.7.8") || p.Hint != "Enter the password again." {
 		t.Fatal(p)
 	}
 	b, err := os.ReadFile(log.Path())
@@ -45,7 +45,7 @@ func TestReporterPreservesDetailsAndRedactsSecrets(t *testing.T) {
 	if saved.ID != p.ID || saved.Level != "error" || saved.Time == "" || saved.Step != "AUTH" {
 		t.Fatal(saved)
 	}
-	if reporter.Report("SMTP prüfen", f, password, body, subject).ID != p.ID {
+	if reporter.Report("Check SMTP", f, password, body, subject).ID != p.ID {
 		t.Fatal("polling duplicate logged")
 	}
 	if reporter.Report("bridge", fmt.Errorf("wrapped: %w", p)) != p {
@@ -97,7 +97,7 @@ func TestStorageFailuresHaveActionableDiagnostics(t *testing.T) {
 			}
 		})
 	}
-	for operation, hint := range map[string]string{"CSV importieren": "UTF-8", "Vorschau": "Platzhalter", "Testmail": "Testadresse", "Versand": "Status", "Schlüsselbund": "entsperren"} {
+	for operation, hint := range map[string]string{"Import CSV": "UTF-8", "Filter contacts": "UTF-8", "Check message preview": "placeholder", "Send test email": "test address", "Start sending": "saved status", "Save delivery status": "saved status", "Read keyring": "Unlock"} {
 		if p := NewReporter(nil).Report(operation, errors.New("failed")); !strings.Contains(p.Hint, hint) {
 			t.Fatal(p)
 		}

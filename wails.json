@@ -7,5 +7,5 @@
  "frontend:dev:watcher":"npm run dev",
  "frontend:dev:serverUrl":"auto",
  "author":{"name":"Arian"},
- "info":{"companyName":"Outreach","productName":"Outreach","productVersion":"0.1.0","copyright":"","comments":"Lokales Outreach-Tool"}
+ "info":{"companyName":"Outreach","productName":"Outreach","productVersion":"0.1.0","copyright":"","comments":"Local email outreach app"}
 }

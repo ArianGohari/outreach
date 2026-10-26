@@ -66,7 +66,7 @@ test.beforeEach(async ({ page }) => {
       id: j.id,
       name: j.name,
       empty:
-        j.name === 'Neuer Job' &&
+        j.name === 'New job' &&
         !j.plan &&
         !j.imported &&
         !j.request.subject &&
@@ -100,7 +100,7 @@ test.beforeEach(async ({ page }) => {
         delete jobs[id];
       },
       DeleteJob: async (id: string) => {
-        if (jobs[id].running) throw new Error('Job zuerst pausieren');
+        if (jobs[id].running) throw new Error('Pause job first');
         delete jobs[id];
       },
       CreateJob: async (name: string) => {
@@ -149,7 +149,7 @@ test.beforeEach(async ({ page }) => {
           onlyVerified: verified,
           contacts: verified ? [] : contacts,
           issues: verified
-            ? [{ row: 2, reason: 'Verifizierungsstatus nicht enthalten' }]
+            ? [{ row: 2, reason: 'Verification status is missing' }]
             : [],
         };
         return jobs[id].report;
@@ -209,7 +209,7 @@ test.beforeEach(async ({ page }) => {
       },
       ReportClientError: async () => ({
         code: 'UI_INPUT',
-        message: 'Ungültige Eingabe',
+        message: 'Invalid input',
         logged: true,
         id: 'test-error',
       }),
@@ -219,7 +219,7 @@ test.beforeEach(async ({ page }) => {
     (window as any).__jobs = jobs;
   });
   await page.goto('/');
-  await page.getByRole('button', { name: 'Neuen Job anlegen' }).click();
+  await page.getByRole('button', { name: 'Create new job' }).click();
 });
 
 test('five-step flow, missing verification, preview, test, invalidation and stop', async ({
@@ -229,53 +229,51 @@ test('five-step flow, missing verification, preview, test, invalidation and stop
   await expect(
     page.getByRole('checkbox', { name: 'Ohne Duplikate' }),
   ).toHaveCount(0);
-  await expect(page.getByLabel('Pause je Batch (Stunden)')).toHaveValue('24');
+  await expect(page.getByLabel('Pause per batch (hours)')).toHaveValue('24');
   await expect(
-    page.getByRole('button', { name: 'Senden', exact: true }),
+    page.getByRole('button', { name: 'Send', exact: true }),
   ).toBeDisabled();
-  await page.getByLabel('SMTP-Server').fill('smtp.example.com');
-  await page.getByLabel('Benutzer', { exact: true }).fill('sender@example.org');
-  await page.getByLabel('Passwort', { exact: true }).fill('test-only');
-  await page.getByRole('button', { name: 'Verbindung prüfen' }).click();
-  await expect(page.getByText('Verbunden · TLS')).toBeVisible();
-  await page.getByRole('button', { name: 'Datei auswählen' }).click();
+  await page.getByLabel('SMTP server').fill('smtp.example.com');
+  await page.getByLabel('Username', { exact: true }).fill('sender@example.org');
+  await page.getByLabel('Password', { exact: true }).fill('test-only');
+  await page.getByRole('button', { name: 'Check connection' }).click();
+  await expect(page.getByText('Connected · TLS')).toBeVisible();
+  await page.getByRole('button', { name: 'Choose file' }).click();
   await expect(
-    page.getByText(/Verifizierungsstatus nicht enthalten/).first(),
+    page.getByText(/Verification status is missing/).first(),
   ).toBeVisible();
   await expect(
-    page.getByRole('button', { name: 'Kontakte prüfen' }),
+    page.getByRole('button', { name: 'Check contacts' }),
   ).toBeDisabled();
-  await page.getByLabel('Nur verifizierte', { exact: true }).uncheck();
-  await page.getByRole('button', { name: 'Kontakte prüfen' }).click();
+  await page.getByLabel('Verified only', { exact: true }).uncheck();
+  await page.getByRole('button', { name: 'Check contacts' }).click();
   await page
-    .getByLabel('Betreff', { exact: true })
+    .getByLabel('Subject', { exact: true })
     .fill('Hallo {{First Name}}');
   await page
     .getByLabel('Text', { exact: true })
     .fill('Hallo {{First Name}},\n\nOhne Signatur.');
-  await page
-    .getByRole('button', { name: 'Nachrichten prüfen & Vorschau' })
-    .click();
+  await page.getByRole('button', { name: 'Validate & preview' }).click();
   await expect(page.locator('.message')).toHaveText(
     'Hallo Lena,\n\nOhne Signatur.',
   );
   await expect(
-    page.getByRole('button', { name: 'Senden', exact: true }),
+    page.getByRole('button', { name: 'Send', exact: true }),
   ).toBeDisabled();
-  await page.getByRole('button', { name: 'Testmail senden' }).click();
+  await page.getByRole('button', { name: 'Send test email' }).click();
   await expect(
-    page.getByRole('button', { name: 'Senden', exact: true }),
+    page.getByRole('button', { name: 'Send', exact: true }),
   ).toBeEnabled();
-  await page.getByLabel('Betreff', { exact: true }).fill('Neuer Betreff');
+  await page.getByLabel('Subject', { exact: true }).fill('Neuer Subject');
   await expect(
-    page.getByRole('button', { name: 'Senden', exact: true }),
+    page.getByRole('button', { name: 'Send', exact: true }),
   ).toBeDisabled();
-  await page.getByRole('button', { name: 'Testmail senden' }).click();
-  await page.getByRole('button', { name: 'Senden', exact: true }).dblclick();
-  await expect(page.getByRole('button', { name: 'Stoppen' })).toBeEnabled();
+  await page.getByRole('button', { name: 'Send test email' }).click();
+  await page.getByRole('button', { name: 'Send', exact: true }).dblclick();
+  await expect(page.getByRole('button', { name: 'Stop' })).toBeEnabled();
   await expect(page.getByLabel('Text', { exact: true })).toBeDisabled();
   expect(await page.evaluate(() => (window as any).__testSendCount())).toBe(1);
-  await page.getByRole('button', { name: 'Stoppen' }).click();
+  await page.getByRole('button', { name: 'Stop' }).click();
 });
 
 test('layout fits supported window sizes and displays imported text literally', async ({
@@ -299,28 +297,26 @@ test('layout fits supported window sizes and displays imported text literally', 
 test('template guide and Jane Doe preview work without import or SMTP', async ({
   page,
 }) => {
-  await page.getByText('Template-Tags & Anleitung').click();
+  await page.getByText('Template tags & guide').click();
   await expect(
     page
-      .getByRole('table', { name: 'Verfügbare Template-Tags' })
+      .getByRole('table', { name: 'Available template tags' })
       .locator('tbody tr'),
   ).toHaveCount(9);
   await page
-    .getByLabel('Betreff', { exact: true })
+    .getByLabel('Subject', { exact: true })
     .fill('Hallo {{First Name}} {{Last Name}}');
   await page
     .getByLabel('Text', { exact: true })
     .fill('Hallo {{First Name}} {{Last Name}}!');
-  await page
-    .getByRole('button', { name: 'Nachrichten prüfen & Vorschau' })
-    .click();
-  await expect(page.getByText('Jane Doe · Beispieldaten')).toBeVisible();
+  await page.getByRole('button', { name: 'Validate & preview' }).click();
+  await expect(page.getByText('Jane Doe · Sample data')).toBeVisible();
   await expect(page.locator('.message')).toHaveText('Hallo Jane Doe!');
   await expect(
-    page.getByRole('button', { name: 'Senden', exact: true }),
+    page.getByRole('button', { name: 'Send', exact: true }),
   ).toBeDisabled();
   await expect(
-    page.getByRole('button', { name: 'Testmail senden' }),
+    page.getByRole('button', { name: 'Send test email' }),
   ).toBeDisabled();
   expect(await page.evaluate(() => (window as any).__testSendCount())).toBe(0);
 });
@@ -328,22 +324,26 @@ test('template guide and Jane Doe preview work without import or SMTP', async ({
 test('Google setup hides password fields and requires a new connection check', async ({
   page,
 }) => {
-  await page.getByRole('combobox', { name: 'Versand über', exact: true }).selectOption('google');
-  await expect(page.getByLabel('SMTP-Server')).toHaveCount(0);
-  await expect(page.getByLabel('Passwort', { exact: true })).toHaveCount(0);
-  await page.getByRole('button', { name: 'Mit Google verbinden' }).click();
+  await page
+    .getByRole('combobox', { name: 'Send via', exact: true })
+    .selectOption('google');
+  await expect(page.getByLabel('SMTP server')).toHaveCount(0);
+  await expect(page.getByLabel('Password', { exact: true })).toHaveCount(0);
+  await page.getByRole('button', { name: 'Connect Google' }).click();
   await expect(
     page.getByText('google@example.org', { exact: true }),
   ).toBeVisible();
   await expect(
-    page.getByRole('button', { name: 'Senden', exact: true }),
+    page.getByRole('button', { name: 'Send', exact: true }),
   ).toBeDisabled();
-  await page.getByRole('button', { name: 'Verbindung prüfen' }).click();
-  await expect(page.getByText('Verbunden · Google')).toBeVisible();
-  await page.getByRole('combobox', { name: 'Versand über', exact: true }).selectOption('');
-  await expect(page.getByLabel('Benutzer', { exact: true })).toHaveValue('');
-  await expect(page.getByLabel('Passwort', { exact: true })).toHaveValue('');
-  await expect(page.getByText('Verbunden · Google')).toHaveCount(0);
+  await page.getByRole('button', { name: 'Check connection' }).click();
+  await expect(page.getByText('Connected · Google')).toBeVisible();
+  await page
+    .getByRole('combobox', { name: 'Send via', exact: true })
+    .selectOption('');
+  await expect(page.getByLabel('Username', { exact: true })).toHaveValue('');
+  await expect(page.getByLabel('Password', { exact: true })).toHaveValue('');
+  await expect(page.getByText('Connected · Google')).toHaveCount(0);
   expect(await page.evaluate(() => (window as any).__testSendCount())).toBe(0);
 });
 
@@ -355,11 +355,11 @@ test('SMTP failure remains readable with diagnostic ID at narrow window width', 
     (window as any).go.main.App.CheckConnection = async () => {
       throw {
         code: 'SMTP_AUTH',
-        message: 'SMTP-Anmeldung fehlgeschlagen',
-        operation: 'SMTP-Verbindung prüfen',
+        message: 'SMTP authentication failed',
+        operation: 'Check SMTP connection',
         details:
           'Server smtp.example.com, Port 587. Schritt: AUTH.\nSMTP 535: 5.7.8 Authentication credentials invalid',
-        hint: 'Benutzername und App-Passwort prüfen.',
+        hint: 'Check the username and app password.',
         step: 'AUTH',
         smtpCode: 535,
         id: 'smtp-error-123',
@@ -369,16 +369,16 @@ test('SMTP failure remains readable with diagnostic ID at narrow window width', 
       };
     };
   });
-  await page.getByRole('button', { name: 'Verbindung prüfen' }).click();
+  await page.getByRole('button', { name: 'Check connection' }).click();
   const alert = page.getByRole('alert');
   await expect(alert).toBeVisible();
   await expect(alert).toContainText('5.7.8 Authentication credentials invalid');
-  await expect(alert).toContainText('Benutzername und App-Passwort prüfen.');
-  await alert.getByText(/Diagnosedaten/).click();
+  await expect(alert).toContainText('Check the username and app password.');
+  await alert.getByText(/Diagnostics/).click();
   await expect(alert).toContainText('smtp-error-123');
-  await expect(alert.getByText(/Protokoll:/)).toBeVisible();
+  await expect(alert.getByText(/Log:/)).toBeVisible();
   await expect(
-    page.getByRole('button', { name: 'Senden', exact: true }),
+    page.getByRole('button', { name: 'Send', exact: true }),
   ).toBeDisabled();
   expect(
     await page.evaluate(
@@ -395,47 +395,47 @@ test('dashboard and tabs preserve separate job drafts and credentials', async ({
   page,
 }) => {
   let panel = page.getByRole('tabpanel');
-  await panel.getByLabel('Jobname', { exact: true }).fill('Alpha');
-  await panel.getByLabel('Benutzer', { exact: true }).fill('alpha@example.org');
-  await panel.getByLabel('Passwort', { exact: true }).fill('alpha-secret');
-  await panel.getByLabel('Betreff', { exact: true }).fill('Nachricht Alpha');
+  await panel.getByLabel('Job name', { exact: true }).fill('Alpha');
+  await panel.getByLabel('Username', { exact: true }).fill('alpha@example.org');
+  await panel.getByLabel('Password', { exact: true }).fill('alpha-secret');
+  await panel.getByLabel('Subject', { exact: true }).fill('Message Alpha');
   await panel.getByLabel('Text', { exact: true }).fill('Hallo {{First Name}}');
-  await panel.getByRole('button', { name: 'Entwurf speichern' }).click();
+  await panel.getByRole('button', { name: 'Save draft' }).click();
   await expect(page.getByRole('tab', { name: /Alpha/ })).toBeVisible();
-  await page.getByRole('button', { name: 'Neuen Job anlegen' }).click();
+  await page.getByRole('button', { name: 'Create new job' }).click();
   panel = page.getByRole('tabpanel');
-  await panel.getByLabel('Jobname', { exact: true }).fill('Beta');
-  await panel.getByLabel('Benutzer', { exact: true }).fill('beta@example.org');
-  await panel.getByLabel('Betreff', { exact: true }).fill('Nachricht Beta');
-  await panel.getByRole('button', { name: 'Entwurf speichern' }).click();
+  await panel.getByLabel('Job name', { exact: true }).fill('Beta');
+  await panel.getByLabel('Username', { exact: true }).fill('beta@example.org');
+  await panel.getByLabel('Subject', { exact: true }).fill('Message Beta');
+  await panel.getByRole('button', { name: 'Save draft' }).click();
   await page.getByRole('tab', { name: /Alpha/ }).click();
   await expect(
-    page.getByRole('tabpanel').getByLabel('Betreff', { exact: true }),
-  ).toHaveValue('Nachricht Alpha');
+    page.getByRole('tabpanel').getByLabel('Subject', { exact: true }),
+  ).toHaveValue('Message Alpha');
   await expect(
-    page.getByRole('tabpanel').getByLabel('Passwort', { exact: true }),
+    page.getByRole('tabpanel').getByLabel('Password', { exact: true }),
   ).toHaveValue('alpha-secret');
-  await page.getByRole('button', { name: 'Tab schließen: Alpha' }).click();
+  await page.getByRole('button', { name: 'Close tab: Alpha' }).click();
   await expect(page.getByRole('tab', { name: /Beta/ })).toHaveAttribute(
     'aria-selected',
     'true',
   );
-  await page.getByRole('tab', { name: /Übersicht/ }).click();
+  await page.getByRole('tab', { name: /Dashboard/ }).click();
   await page
     .getByRole('tabpanel')
-    .getByRole('button', { name: /Alpha alpha@example.org Entwurf/ })
+    .getByRole('button', { name: /Alpha alpha@example.org Draft/ })
     .click();
   await expect(
-    page.getByRole('tabpanel').getByLabel('Passwort', { exact: true }),
+    page.getByRole('tabpanel').getByLabel('Password', { exact: true }),
   ).toHaveValue('alpha-secret');
   await page.getByRole('tab', { name: /Beta/ }).click();
   await expect(
-    page.getByRole('tabpanel').getByLabel('Betreff', { exact: true }),
-  ).toHaveValue('Nachricht Beta');
+    page.getByRole('tabpanel').getByLabel('Subject', { exact: true }),
+  ).toHaveValue('Message Beta');
   await expect(
-    page.getByRole('tabpanel').getByLabel('Passwort', { exact: true }),
+    page.getByRole('tabpanel').getByLabel('Password', { exact: true }),
   ).toHaveValue('');
-  await page.getByRole('tab', { name: /Übersicht/ }).click();
+  await page.getByRole('tab', { name: /Dashboard/ }).click();
   await page.setViewportSize({ width: 640, height: 900 });
   expect(
     await page.evaluate(
@@ -452,56 +452,52 @@ test('dashboard and tabs preserve separate job drafts and credentials', async ({
 test('closing a running job tab does not stop its worker', async ({ page }) => {
   const panel = page.getByRole('tabpanel');
   await panel
-    .getByLabel('Benutzer', { exact: true })
+    .getByLabel('Username', { exact: true })
     .fill('sender@example.org');
-  await panel.getByRole('button', { name: 'Verbindung prüfen' }).click();
-  await panel.getByRole('button', { name: 'Datei auswählen' }).click();
-  await panel.getByLabel('Nur verifizierte', { exact: true }).uncheck();
-  await panel.getByRole('button', { name: 'Kontakte prüfen' }).click();
-  await panel.getByLabel('Betreff', { exact: true }).fill('Test');
+  await panel.getByRole('button', { name: 'Check connection' }).click();
+  await panel.getByRole('button', { name: 'Choose file' }).click();
+  await panel.getByLabel('Verified only', { exact: true }).uncheck();
+  await panel.getByRole('button', { name: 'Check contacts' }).click();
+  await panel.getByLabel('Subject', { exact: true }).fill('Test');
   await panel.getByLabel('Text', { exact: true }).fill('Hallo {{First Name}}');
-  await panel.getByRole('button', { name: 'Testmail senden' }).click();
-  await panel.getByRole('button', { name: 'Senden', exact: true }).click();
-  await expect(panel.getByRole('button', { name: 'Stoppen' })).toBeEnabled();
+  await panel.getByRole('button', { name: 'Send test email' }).click();
+  await panel.getByRole('button', { name: 'Send', exact: true }).click();
+  await expect(panel.getByRole('button', { name: 'Stop' })).toBeEnabled();
   await page.screenshot({
     path: `test-results/job-progress-${test.info().project.name}.png`,
     fullPage: true,
   });
-  await page.getByRole('button', { name: 'Tab schließen: Neuer Job' }).click();
+  await page.getByRole('button', { name: 'Close tab: New job' }).click();
   await expect(
-    page
-      .getByRole('tabpanel')
-      .getByRole('button', { name: 'Pausieren: Neuer Job' }),
+    page.getByRole('tabpanel').getByRole('button', { name: 'Pause: New job' }),
   ).toBeVisible();
   expect(
     await page.evaluate(() => (window as any).__jobs['job-1'].running),
   ).toBe(true);
   await page
     .getByRole('tabpanel')
-    .getByRole('button', { name: 'Pausieren: Neuer Job' })
+    .getByRole('button', { name: 'Pause: New job' })
     .click();
   await expect(
-    page
-      .getByRole('tabpanel')
-      .getByRole('button', { name: 'Pausieren: Neuer Job' }),
+    page.getByRole('tabpanel').getByRole('button', { name: 'Pause: New job' }),
   ).toHaveCount(0);
 });
 
 test('reopens a blank draft and discards it without leaving stale tabs', async ({
   page,
 }) => {
-  await page.getByRole('button', { name: 'Neuen Job anlegen' }).click();
-  await expect(page.getByRole('tab', { name: /Neuer Job/ })).toHaveCount(1);
+  await page.getByRole('button', { name: 'Create new job' }).click();
+  await expect(page.getByRole('tab', { name: /New job/ })).toHaveCount(1);
   expect(
     await page.evaluate(() => Object.keys((window as any).__jobs).length),
   ).toBe(1);
-  await page.getByRole('tab', { name: /Übersicht/ }).click();
-  await page.getByRole('button', { name: 'Tab schließen: Neuer Job' }).click();
-  await expect(page.getByText('Keine Jobs.')).toBeVisible();
-  await expect(page.getByRole('tab', { name: /Neuer Job/ })).toHaveCount(0);
-  await page.getByRole('button', { name: 'Neuen Job anlegen' }).click();
+  await page.getByRole('tab', { name: /Dashboard/ }).click();
+  await page.getByRole('button', { name: 'Close tab: New job' }).click();
+  await expect(page.getByText('No jobs yet.')).toBeVisible();
+  await expect(page.getByRole('tab', { name: /New job/ })).toHaveCount(0);
+  await page.getByRole('button', { name: 'Create new job' }).click();
   await expect(
-    page.getByRole('heading', { name: 'Neuer Job', exact: true }),
+    page.getByRole('heading', { name: 'New job', exact: true }),
   ).toBeVisible();
 });
 
@@ -512,23 +508,23 @@ test('tab overflow keeps add button visible and supports keyboard navigation', a
   for (let i = 1; i <= 6; i++) {
     await page
       .getByRole('tabpanel')
-      .getByLabel('Jobname', { exact: true })
+      .getByLabel('Job name', { exact: true })
       .fill(`Kampagne ${i} · Unternehmensgründer in Deutschland`);
     if (i < 6)
-      await page.getByRole('button', { name: 'Neuen Job anlegen' }).click();
+      await page.getByRole('button', { name: 'Create new job' }).click();
     else
       await page
         .getByRole('tabpanel')
-        .getByRole('button', { name: 'Entwurf speichern' })
+        .getByRole('button', { name: 'Save draft' })
         .click();
   }
-  const add = page.getByRole('button', { name: 'Neuen Job anlegen' });
+  const add = page.getByRole('button', { name: 'Create new job' });
   await expect(add).toBeInViewport();
   const last = page.getByRole('tab', { name: /Kampagne 6/ });
   await expect(last).toBeInViewport();
   await last.focus();
   await last.press('Home');
-  const overview = page.getByRole('tab', { name: /Übersicht/ });
+  const overview = page.getByRole('tab', { name: /Dashboard/ });
   await expect(overview).toHaveAttribute('aria-selected', 'true');
   await expect(overview).toBeInViewport();
   await overview.press('End');
@@ -556,22 +552,22 @@ test('tab overflow keeps add button visible and supports keyboard navigation', a
 test('deleting a configured job requires confirmation and removes its tab', async ({
   page,
 }) => {
-  await page.getByLabel('Jobname', { exact: true }).fill('Entfernen');
-  await page.getByLabel('Betreff', { exact: true }).fill('Mein Entwurf');
-  await page.getByRole('button', { name: 'Entwurf speichern' }).click();
+  await page.getByLabel('Job name', { exact: true }).fill('Entfernen');
+  await page.getByLabel('Subject', { exact: true }).fill('Mein Draft');
+  await page.getByRole('button', { name: 'Save draft' }).click();
   await expect(page.getByRole('tab', { name: /Entfernen/ })).toBeVisible();
-  await page.getByRole('tab', { name: /Übersicht/ }).click();
-  await page.getByRole('button', { name: 'Job löschen: Entfernen' }).click();
-  await page.getByRole('button', { name: 'Abbrechen', exact: true }).click();
+  await page.getByRole('tab', { name: /Dashboard/ }).click();
+  await page.getByRole('button', { name: 'Delete job: Entfernen' }).click();
+  await page.getByRole('button', { name: 'Cancel', exact: true }).click();
   await expect(page.getByRole('tab', { name: /Entfernen/ })).toBeVisible();
-  await page.getByRole('button', { name: 'Job löschen: Entfernen' }).click();
+  await page.getByRole('button', { name: 'Delete job: Entfernen' }).click();
   await expect(
-    page.getByText('Job löschen? Versandhistorie bleibt erhalten.'),
+    page.getByText('Delete job? Sending history will be kept.'),
   ).toBeVisible();
   await page
-    .getByRole('button', { name: 'Endgültig löschen: Entfernen' })
+    .getByRole('button', { name: 'Confirm deletion: Entfernen' })
     .click();
-  await expect(page.getByText('Keine Jobs.')).toBeVisible();
+  await expect(page.getByText('No jobs yet.')).toBeVisible();
   await expect(page.getByRole('tab', { name: /Entfernen/ })).toHaveCount(0);
   await page.reload();
   await expect(page.getByRole('tab', { name: /Entfernen/ })).toHaveCount(0);

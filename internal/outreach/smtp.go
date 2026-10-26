@@ -43,7 +43,7 @@ type SMTPSender struct {
 
 func (sender SMTPSender) connect(ctx context.Context, c Config) (*smtp.Client, net.Conn, error) {
 	if c.Provider != "" {
-		return nil, nil, fmt.Errorf("Google-Konten benötigen den Google-Versandweg")
+		return nil, nil, fmt.Errorf("Google accounts require the Google sending provider")
 	}
 	if e := c.Validate(); e != nil {
 		return nil, nil, e
@@ -88,7 +88,7 @@ func (sender SMTPSender) connect(ctx context.Context, c Config) (*smtp.Client, n
 	}
 	if c.Port != 465 {
 		if ok, _ := client.Extension("STARTTLS"); !ok {
-			return fail(diagnostics.New("SMTP_STARTTLS_UNAVAILABLE", "SMTP-Server bietet kein STARTTLS an", fmt.Sprintf("Server %s, Port %d bietet keine sichere STARTTLS-Verbindung an.", c.Host, c.Port), "SMTP-Port prüfen: 465 verwendet direkt TLS; andere Ports müssen STARTTLS anbieten. Es wurden keine Zugangsdaten übertragen.", nil))
+			return fail(diagnostics.New("SMTP_STARTTLS_UNAVAILABLE", "SMTP server does not support STARTTLS", fmt.Sprintf("Server %s, port %d does not support a secure STARTTLS connection.", c.Host, c.Port), "Check the SMTP port: 465 uses TLS directly; other ports must support STARTTLS. No credentials were sent.", nil))
 		}
 		if e = client.StartTLS(tlsConf); e != nil {
 			return fail(SMTPFailure("STARTTLS", c, e, false))
@@ -119,10 +119,10 @@ func MIME(c Config, m Message) ([]byte, error) {
 		return nil, e
 	}
 	if strings.TrimSpace(m.Subject) == "" || invalidText(m.Subject, false) || strings.TrimSpace(m.Body) == "" || invalidText(m.Body, true) {
-		return nil, fmt.Errorf("Ungültiger Nachrichteninhalt")
+		return nil, fmt.Errorf("Invalid message content")
 	}
 	if !strings.HasPrefix(m.MessageID, "<") || !strings.HasSuffix(m.MessageID, ">") || invalidText(m.MessageID, false) {
-		return nil, fmt.Errorf("Ungültige Message-ID")
+		return nil, fmt.Errorf("Invalid Message-ID")
 	}
 	var b bytes.Buffer
 	fmt.Fprintf(&b, "From: %s\r\nTo: %s\r\nSubject: %s\r\n", (&mail.Address{Name: c.FromName, Address: c.Sender()}).String(), (&mail.Address{Address: m.To}).String(), mime.QEncoding.Encode("UTF-8", m.Subject))
@@ -168,7 +168,7 @@ func (sender SMTPSender) Send(ctx context.Context, c Config, m Message) SendResu
 	}
 	// A lost QUIT reply cannot undo the final positive DATA acknowledgement.
 	_ = client.Quit()
-	return SendResult{Status: "sent", Detail: "An SMTP-Server übergeben"}
+	return SendResult{Status: "sent", Detail: "Accepted by SMTP server"}
 }
 func TestMessage(m Message, to string) (Message, error) {
 	a, e := Address(to)

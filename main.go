@@ -20,12 +20,12 @@ func main() {
 	if store != nil {
 		defer func() {
 			if err := store.Close(); err != nil {
-				app.reporter.Report("Datenbank schließen", err)
+				app.reporter.Report("Close database", err)
 			}
 		}()
 	}
 	if err := wails.Run(desktopOptions(app)); err != nil {
-		problem := app.reporter.Report("Desktop-Fenster öffnen", err)
+		problem := app.reporter.Report("Open desktop window", err)
 		fmt.Fprintln(os.Stderr, problem.Error())
 	}
 }
@@ -41,9 +41,9 @@ func openApp(dir string, configErr error) (*App, *outreach.Store) {
 	var store *outreach.Store
 	var startupErr error
 	if configErr != nil {
-		startupErr = fmt.Errorf("Benutzer-Datenordner nicht verfügbar: %w", configErr)
+		startupErr = fmt.Errorf("User data directory unavailable: %w", configErr)
 	} else if logErr != nil {
-		startupErr = fmt.Errorf("Fehlerprotokoll konnte nicht geöffnet werden: %w", logErr)
+		startupErr = fmt.Errorf("Could not open error log: %w", logErr)
 	} else {
 		store, startupErr = outreach.OpenStore(filepath.Join(dir, "Outreach", "outreach.db"))
 		if startupErr == nil {
@@ -51,7 +51,7 @@ func openApp(dir string, configErr error) (*App, *outreach.Store) {
 		}
 	}
 	if startupErr != nil {
-		app = &App{reporter: reporter, startupProblem: reporter.Report("App starten", startupErr)}
+		app = &App{reporter: reporter, startupProblem: reporter.Report("Start app", startupErr)}
 	}
 	return app, store
 }

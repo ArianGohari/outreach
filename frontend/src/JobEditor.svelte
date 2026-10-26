@@ -81,7 +81,7 @@
   function scheduleSave() {
     if (!initialized) return;
     dirty = true;
-    saveStatus = 'Nicht gespeichert';
+    saveStatus = 'Unsaved';
     clearTimeout(saveTimer);
     saveTimer = setTimeout(() => {
       if (busy) scheduleSave();
@@ -90,9 +90,7 @@
   }
   export async function flushDraft() {
     if (busy && dirty)
-      throw new Error(
-        'Für diesen Job läuft noch eine Aktion. Bitte kurz warten.',
-      );
+      throw new Error('An action is still running for this job. Please wait.');
     await saveDraft();
     await saving;
   }
@@ -108,7 +106,7 @@
     await saving;
     if (version === revision) {
       dirty = false;
-      saveStatus = 'Entwurf gespeichert';
+      saveStatus = 'Draft saved';
     }
     onChanged();
   }
@@ -221,11 +219,10 @@
     ]);
     try {
       const inputCodes: Record<string, string> = {
-        'Batchpause zwischen 0 und 24 Stunden eingeben.': 'UI_BATCH_RANGE',
-        'Batchpause minutengenau eingeben, z. B. 0,5 oder 1,5 Stunden.':
+        'Enter a batch pause between 0 and 24 hours.': 'UI_BATCH_RANGE',
+        'Enter a batch pause in whole minutes, such as 0.5 or 1.5 hours.':
           'UI_BATCH_PRECISION',
-        'Keine freigegebenen Kontakte. Filter und Ausschlüsse prüfen.':
-          'UI_NO_CONTACTS',
+        'No eligible contacts. Check filters and exclusions.': 'UI_NO_CONTACTS',
       };
       const logged = await backend().ReportClientError(
         inputCodes[details] || category,
@@ -234,11 +231,10 @@
     } catch {
       error = {
         code: category,
-        message: 'Aktion fehlgeschlagen',
+        message: 'Action failed',
         details,
         logged: false,
-        logIssue:
-          'Fehlerprotokoll über die Desktop-Verbindung nicht erreichbar.',
+        logIssue: 'Error log unavailable through the desktop connection.',
       };
     }
   }
@@ -308,9 +304,7 @@
   async function checkContacts() {
     await action(async () => {
       if (!report?.contacts.length)
-        throw new Error(
-          'Keine freigegebenen Kontakte. Filter und Ausschlüsse prüfen.',
-        );
+        throw new Error('No eligible contacts. Check filters and exclusions.');
       contactsChecked = true;
     });
   }
@@ -372,7 +366,8 @@
             ? deliveryState.plan
             : null;
         contactsChecked = !!report?.contacts.length;
-        notice = 'Zum Fortsetzen Verbindung und Testmail erneut prüfen.';
+        notice =
+          'Check the connection and send a new test email before resuming.';
       }
       testTo = config.from || config.username;
       if (config.remember && config.provider !== 'google')
@@ -411,15 +406,15 @@
         action(async () => {
           await backend().Stop();
           await refresh();
-          notice = 'Wird nach der laufenden Übertragung gestoppt.';
+          notice = 'Stopping after the current transfer.';
         })}
     />
   {/if}
   <div hidden={view !== 'edit'}>
     <section aria-labelledby={uid + '-sender-heading'}>
-      <h2 id={uid + '-sender-heading'}><b>01</b>Job & Absender</h2>
+      <h2 id={uid + '-sender-heading'}><b>01</b>Job & Sender</h2>
       <label class="job-name"
-        ><span>Jobname</span><input
+        ><span>Job name</span><input
           bind:value={jobName}
           maxlength="100"
           disabled={locked}
@@ -431,11 +426,11 @@
       >
       {#if accounts.some((a) => a.id !== job.id && (a.draft.request.config.from || a.draft.request.config.username))}
         <label class="account-choice"
-          ><span>Absender-Konto übernehmen</span><select
+          ><span>Use existing account</span><select
             disabled={locked}
             onchange={(e) => void useAccount(e.currentTarget.value)}
           >
-            <option value="">Eigenes Konto konfigurieren</option>
+            <option value="">Configure a new account</option>
             {#each accounts.filter((a) => a.id !== job.id && (a.draft.request.config.from || a.draft.request.config.username)) as account}
               <option value={account.id}
                 >{account.draft.request.config.from ||
@@ -446,7 +441,7 @@
         >
       {/if}
       <label class="account-choice"
-        ><span>Versand über</span><select
+        ><span>Send via</span><select
           value={config.provider || ''}
           disabled={locked}
           onchange={(e) => void selectProvider(e.currentTarget.value)}
@@ -467,32 +462,32 @@
                 googleConfigured = true;
               })}
             >{googleConfigured
-              ? 'OAuth-JSON ändern'
-              : 'OAuth-JSON auswählen'}</button
+              ? 'Change OAuth JSON'
+              : 'Select OAuth JSON'}</button
           >
           <button disabled={locked || !googleConfigured} onclick={googleLogin}
-            >Mit Google verbinden</button
+            >Connect Google</button
           >
           {#if config.googleGrant}<button
               class="plain"
               disabled={locked}
-              onclick={googleDisconnect}>Google-Verbindung entfernen</button
+              onclick={googleDisconnect}>Remove Google connection</button
             >{/if}
         </div>
         <p class="hint">
           {config.googleGrant
             ? config.username
-            : 'Google-Anmeldung im Browser. Nur E-Mails senden.'}
+            : 'Sign in with Google in your browser. Send-only access.'}
         </p>
         {#if busy}<p class="hint">
-            Google-Anmeldung gegebenenfalls im Browser abschließen.
+            Complete Google sign-in in your browser if prompted.
           </p>{/if}
       {/if}
       <fieldset disabled={locked}>
         <div class="grid">
           {#if config.provider !== 'google'}
             <label class="four"
-              ><span>SMTP-Server</span><input
+              ><span>SMTP server</span><input
                 bind:value={config.host}
                 oninput={() => invalidate(true)}
                 placeholder="smtp.example.com"
@@ -510,7 +505,7 @@
               /></label
             >
             <label class="three"
-              ><span>Benutzer</span><input
+              ><span>Username</span><input
                 bind:value={config.username}
                 oninput={() => invalidate(true)}
                 autocomplete="username"
@@ -518,7 +513,7 @@
               /></label
             >
             <label class="three"
-              ><span>Passwort</span><input
+              ><span>Password</span><input
                 type="password"
                 bind:value={config.password}
                 oninput={() => invalidate(true)}
@@ -527,26 +522,26 @@
             >
           {/if}
           <label class="three"
-            ><span>Absendername</span><input
+            ><span>Sender name</span><input
               bind:value={config.fromName}
               oninput={() => invalidate(true)}
             /></label
           >
           {#if config.provider !== 'google'}<label class="three"
-              ><span>Absenderadresse</span><input
+              ><span>Sender address</span><input
                 type="email"
                 bind:value={config.from}
                 oninput={() => invalidate(true)}
-                placeholder="Leer = Benutzer"
+                placeholder="Blank = username"
               /></label
             >
           {/if}
           <label class="full"
-            ><span>Antwortadresse (optional)</span><input
+            ><span>Reply-to address (optional)</span><input
               type="email"
               bind:value={config.replyTo}
               oninput={() => invalidate(true)}
-              placeholder="Leer = Absenderadresse"
+              placeholder="Blank = sender address"
             /></label
           >
         </div>
@@ -555,36 +550,37 @@
               type="checkbox"
               bind:checked={config.remember}
               onchange={() => invalidate(true)}
-            />Passwort im Betriebssystem-Schlüsselbund speichern</label
+            />Save password in system keyring</label
           >{/if}
       </fieldset>
       <div class="actions">
-        <button disabled={locked} onclick={connect}>Verbindung prüfen</button
+        <button disabled={locked} onclick={connect}>Check connection</button
         >{#if connected}<span class="ok small"
             >{config.provider === 'google'
-              ? 'Verbunden · Google'
-              : 'Verbunden · TLS'}</span
+              ? 'Connected · Google'
+              : 'Connected · TLS'}</span
           >{/if}
       </div>
       <div class="actions">
         <button
           class="plain"
           disabled={locked}
-          onclick={() => action(saveDraft)}>Entwurf speichern</button
+          onclick={() => action(saveDraft)}>Save draft</button
         ><span class="hint">{saveStatus}</span>
       </div>
       {#if config.provider !== 'google'}<p class="hint">
-          Port 465: TLS · andere Ports: STARTTLS.
+          Port 465: TLS · Other ports: STARTTLS.
         </p>{/if}
     </section>
     <section aria-labelledby={uid + '-contacts-heading'}>
-      <h2 id={uid + '-contacts-heading'}><b>02</b>Kontakte</h2>
+      <h2 id={uid + '-contacts-heading'}><b>02</b>Contacts</h2>
       <div class="grid">
         <div class="full">
-          <div class="label">Apollo-CSV</div>
+          <div class="label">Apollo CSV</div>
           <div class="file">
-            <button disabled={locked} onclick={choose}>Datei auswählen</button
-            ><span>{report?.filename || 'Keine Datei ausgewählt'}</span>
+            <button disabled={locked} onclick={choose}>Choose file</button><span
+              >{report?.filename || 'No file selected'}</span
+            >
           </div>
         </div>
         <div class="three checks">
@@ -594,28 +590,28 @@
               bind:checked={verified}
               disabled={locked || !report}
               onchange={filter}
-            />Nur verifizierte</label
+            />Verified only</label
           >
         </div>
       </div>
       {#if report && !report.hasStatus}<p class="hint warning">
-          Verifizierungsstatus nicht enthalten. {verified
-            ? 'Zum Import „Nur verifizierte“ deaktivieren.'
-            : 'Ohne Verifizierungsnachweis.'}
+          Verification status is missing. {verified
+            ? 'Turn off Verified only to import.'
+            : 'No verification record.'}
         </p>{/if}
       <div class="actions">
         <button
           disabled={locked || !report?.contacts.length}
-          onclick={checkContacts}>Kontakte prüfen</button
+          onclick={checkContacts}>Check contacts</button
         >{#if report}<span class="small" class:ok={contactsChecked}
-            >{contactsChecked ? 'Geprüft · ' : ''}{report.contacts.length} verwendbar
-            · {report.headers.length} Spalten ·
-            {report.issues.length} ausgeschlossen</span
+            >{contactsChecked ? 'Checked · ' : ''}{report.contacts.length} eligible
+            · {report.headers.length} columns ·
+            {report.issues.length} excluded</span
           >{/if}
       </div>
       {#if report?.previouslyContacted}<p class="hint warning">
-          {report.previouslyContacted} Kontakte bereits angeschrieben. Identische
-          Nachrichten bleiben jobübergreifend gesperrt.
+          {report.previouslyContacted} contacts already contacted. Identical messages
+          remain blocked across jobs.
         </p>{/if}
       {#if report}
         <div class="table-wrap">
@@ -633,23 +629,21 @@
           </table>
         </div>
         {#if report.issues.length}<details>
-            <summary
-              >{report.issues.length} ausgeschlossene Einträge prüfen</summary
-            >
+            <summary>{report.issues.length} excluded entries to review</summary>
             <ul>
               {#each report.issues as issue}<li>
-                  Zeile {issue.row}: {issue.reason}
+                  Row {issue.row}: {issue.reason}
                 </li>{/each}
             </ul>
           </details>{/if}
       {/if}
     </section>
     <section aria-labelledby={uid + '-message-heading'}>
-      <h2 id={uid + '-message-heading'}><b>03</b>Nachricht</h2>
+      <h2 id={uid + '-message-heading'}><b>03</b>Message</h2>
       <fieldset disabled={locked}>
         <div class="grid">
           <label class="full"
-            ><span>Betreff</span><input
+            ><span>Subject</span><input
               bind:value={subject}
               oninput={() => invalidate()}
             /></label
@@ -671,50 +665,50 @@
       <TemplateGuide headers={report?.headers} />
       <div class="actions">
         <button disabled={locked} onclick={() => action(preview)}
-          >Nachrichten prüfen & Vorschau</button
+          >Validate & preview</button
         >{#if plan}<span class="small" class:ok={!plan.example}
             >{plan.example
-              ? 'Beispielvorschau'
-              : `Alle ${plan.messages.length} Nachrichten geprüft`}</span
+              ? 'Sample preview'
+              : `All ${plan.messages.length} messages validated`}</span
           >{/if}
       </div>
       <div class="preview">
         <div class="preview-heading">
-          <span class="label">Vorschau</span>
+          <span class="label">Preview</span>
           {#if plan?.example}<span class="small muted"
-              >Jane Doe · Beispieldaten</span
+              >Jane Doe · Sample data</span
             >{:else}<div>
               <button
                 class="plain"
-                aria-label="Vorheriger Kontakt"
+                aria-label="Previous contact"
                 disabled={!plan || index <= 0}
                 onclick={() => index--}>←</button
               ><span class="small"
                 >{plan ? index + 1 : 0} / {plan?.messages.length || 0}</span
               ><button
                 class="plain"
-                aria-label="Nächster Kontakt"
+                aria-label="Next contact"
                 disabled={!plan || index >= plan.messages.length - 1}
                 onclick={() => index++}>→</button
               >
             </div>{/if}
         </div>
         {#if message}<dl>
-            <dt>An</dt>
+            <dt>To</dt>
             <dd>{message.to}</dd>
-            <dt>Betreff</dt>
+            <dt>Subject</dt>
             <dd>{message.subject}</dd>
           </dl>
           <p class="message">{message.body}</p>{:else}<p class="muted">
-            Ohne CSV: Vorschau mit Jane Doe.
+            Preview with Jane Doe before importing a CSV.
           </p>{/if}
       </div>
     </section>
     <section aria-labelledby={uid + '-test-heading'}>
-      <h2 id={uid + '-test-heading'}><b>04</b>Testmail</h2>
+      <h2 id={uid + '-test-heading'}><b>04</b>Test email</h2>
       <div class="grid">
         <label class="four"
-          ><span>Testmail an</span><input
+          ><span>Test email to</span><input
             type="email"
             bind:value={testTo}
             disabled={locked}
@@ -723,25 +717,27 @@
         >
       </div>
       <p class="hint">
-        Testmail nutzt den Vorschaukontakt. Vor dem Versand im Posteingang
-        prüfen.
+        Uses the preview contact. Check the test email in your inbox before
+        sending outreach.
       </p>
       <div class="actions">
         <button
           disabled={locked || !connected || !contactsChecked || !testTo}
-          onclick={test}>Testmail senden</button
+          onclick={test}>Send test email</button
         >{#if tested}<span class="ok small"
-            >Testmail an {config.provider === 'google' ? 'Google' : 'SMTP'} übergeben
-            · Posteingang prüfen</span
+            >Test email accepted by {config.provider === 'google'
+              ? 'Google'
+              : 'SMTP'}
+            · Check your inbox</span
           >{/if}
       </div>
     </section>
     <section aria-labelledby={uid + '-send-heading'}>
-      <h2 id={uid + '-send-heading'}><b>05</b>Versand</h2>
+      <h2 id={uid + '-send-heading'}><b>05</b>Sending</h2>
       <fieldset disabled={locked}>
         <div class="grid">
           <label class="two"
-            ><span>Pause je E-Mail (Sek.)</span><input
+            ><span>Pause per email (seconds)</span><input
               type="number"
               min="1"
               max="86400"
@@ -750,7 +746,7 @@
             /></label
           >
           <label class="two"
-            ><span>Batchgröße (max. 100)</span><input
+            ><span>Batch size (max. 100)</span><input
               type="number"
               min="1"
               max="100"
@@ -759,7 +755,7 @@
             /></label
           >
           <label class="two"
-            ><span>Pause je Batch (Stunden)</span><input
+            ><span>Pause per batch (hours)</span><input
               type="number"
               min="0"
               max="24"
@@ -773,25 +769,27 @@
       {#if report?.contacts.length}<p class="hint">
           {Math.ceil(report.contacts.length / Math.max(1, batchSize))} Batches
         </p>{/if}
-      <p class="hint">Versand nur bei geöffneter App und wachem Rechner.</p>
+      <p class="hint">
+        Sending requires the app to stay open and the computer awake.
+      </p>
       {#if accountBusy}<p class="hint warning">
-          Absender belegt. Anderen Job zuerst pausieren oder beenden lassen.
+          Sender busy. Pause the other job or wait for it to finish.
         </p>{/if}
       <div class="actions">
         <button class="primary" disabled={!ready} onclick={start}
           >{deliveryState.plan?.id === plan?.id &&
           deliveryState.deliveries.length
-            ? 'Fortsetzen'
-            : 'Senden'}</button
+            ? 'Resume'
+            : 'Send'}</button
         ><button
           class="plain"
           disabled={!deliveryState.running}
           onclick={() =>
             action(async () => {
               await backend().Stop();
-              notice = 'Wird nach der laufenden Übertragung gestoppt.';
-            })}>Stoppen</button
-        >{#if busy}<span class="small muted" role="status">Wird geprüft …</span
+              notice = 'Stopping after the current transfer.';
+            })}>Stop</button
+        >{#if busy}<span class="small muted" role="status">Checking...</span
           >{/if}
       </div>
       {#if deliveryState.error && !deliveryState.problem}<p
@@ -805,21 +803,19 @@
             <span class="number"
               >{finished} / {deliveryState.deliveries.length}</span
             ><span class="small"
-              >{deliveryState.running
-                ? 'Versand aktiv'
-                : 'Versand pausiert / beendet'} ·
-              <span class="ok">{sent} übergeben</span></span
+              >{deliveryState.running ? 'Sending' : 'Paused / Finished'} ·
+              <span class="ok">{sent} accepted</span></span
             >
           </div>
           <progress
             value={finished}
             max={deliveryState.deliveries.length}
-            aria-label="Versandfortschritt"
+            aria-label="Sending progress"
           ></progress>
           {#if deliveryState.running && deliveryState.nextAt}<p class="hint">
-              Nächste Freigabe frühestens {new Date(
+              Next send no earlier than {new Date(
                 deliveryState.nextAt,
-              ).toLocaleTimeString('de-DE')}.
+              ).toLocaleTimeString('en-US')}.
             </p>{/if}
           <div class="log">
             {#each deliveryState.deliveries
@@ -828,7 +824,7 @@
               .reverse() as d}<div class="log-row">
                 <span class="muted"
                   >{d.updated
-                    ? new Date(d.updated).toLocaleTimeString('de-DE')
+                    ? new Date(d.updated).toLocaleTimeString('en-US')
                     : ''}</span
                 ><span>{d.to}</span><span
                   title={d.detail}
@@ -839,7 +835,7 @@
                 >
                 {#if d.detail && ['failed', 'uncertain', 'blocked'].includes(d.status)}
                   <details class="delivery-error">
-                    <summary>Fehlerdetails</summary>
+                    <summary>Error details</summary>
                     <p>{d.detail}</p>
                   </details>
                 {/if}

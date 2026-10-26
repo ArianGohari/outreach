@@ -55,14 +55,14 @@ describe('desktop error boundary', () => {
       new Error('secret-long secret person+tag@example.org'),
       ['secret', '', 'secret-long'],
     );
-    expect(text).toBe('[geschützt] [geschützt] [E-Mail-Adresse]');
+    expect(text).toBe('[redacted] [redacted] [email address]');
     expect(errorText('x'.repeat(7000))).toHaveLength(6000);
   });
   it('fails clearly when opened outside the desktop app', () => {
     const previous = window.go;
     try {
       delete window.go;
-      expect(() => backend()).toThrow('Desktop-App öffnen');
+      expect(() => backend()).toThrow('Open the desktop app');
     } finally {
       window.go = previous;
     }

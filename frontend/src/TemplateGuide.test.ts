@@ -4,8 +4,8 @@ import TemplateGuide from './TemplateGuide.svelte';
 
 it('lists the eight agreed CSV fields and the company alias before import', async () => {
   render(TemplateGuide);
-  await fireEvent.click(screen.getByText('Template-Tags & Anleitung'));
-  const table = screen.getByRole('table', { name: 'Verfügbare Template-Tags' });
+  await fireEvent.click(screen.getByText('Template tags & guide'));
+  const table = screen.getByRole('table', { name: 'Available template tags' });
   expect(table.querySelectorAll('tbody tr')).toHaveLength(9);
   for (const name of [
     'First Name',
@@ -24,8 +24,8 @@ it('lists the eight agreed CSV fields and the company alias before import', asyn
 
 it('lists every imported column without suggesting absent fields', async () => {
   render(TemplateGuide, { headers: ['First Name', 'Email', 'Custom Field'] });
-  await fireEvent.click(screen.getByText('Template-Tags & Anleitung'));
-  const table = screen.getByRole('table', { name: 'Verfügbare Template-Tags' });
+  await fireEvent.click(screen.getByText('Template tags & guide'));
+  const table = screen.getByRole('table', { name: 'Available template tags' });
   expect(table.querySelectorAll('tbody tr')).toHaveLength(3);
   expect(table.textContent).toContain('{{Custom Field}}');
   expect(table.textContent).not.toContain('{{Company}}');

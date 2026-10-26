@@ -14,13 +14,13 @@ export function errorText(value: unknown, secrets: string[] = []): string {
       ? value.message
       : typeof value === 'string'
         ? value
-        : 'Unbekannter Fehler in der Oberfläche.';
+        : 'Unknown interface error.';
   for (const secret of secrets
     .filter(Boolean)
     .sort((a, b) => b.length - a.length)) {
-    text = text.split(secret).join('[geschützt]');
+    text = text.split(secret).join('[redacted]');
   }
-  return text.replace(/[\w.+%-]+@[\w.-]+/g, '[E-Mail-Adresse]').slice(0, 6000);
+  return text.replace(/[\w.+%-]+@[\w.-]+/g, '[email address]').slice(0, 6000);
 }
 
 // Wails 2 passes ErrorFormatter strings through new Error(message).

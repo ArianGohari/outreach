@@ -32,7 +32,7 @@ func (f *fakeSender) Send(ctx context.Context, c Config, m Message) SendResult {
 	if f.result.Status != "" {
 		return f.result
 	}
-	return SendResult{Status: "sent", Detail: "An SMTP übergeben"}
+	return SendResult{Status: "sent", Detail: "Accepted by SMTP"}
 }
 func (f *fakeSender) count() int { f.mu.Lock(); defer f.mu.Unlock(); return len(f.messages) }
 

@@ -24,23 +24,22 @@
         : ''}{problem.smtpCode ? ` · SMTP ${problem.smtpCode}` : ''}
     </p>{/if}
   {#if problem.details}<p class="error-details">{problem.details}</p>{/if}
-  {#if problem.hint}<p><b>Nächster Schritt:</b> {problem.hint}</p>{/if}
+  {#if problem.hint}<p><b>Next step:</b> {problem.hint}</p>{/if}
   <details>
-    <summary
-      >Diagnosedaten{problem.id ? ` · Fehler-ID ${problem.id}` : ''}</summary
+    <summary>Diagnostics{problem.id ? ` · Error ID ${problem.id}` : ''}</summary
     >
     <p>Code: {problem.code}</p>
     {#if problem.time}<p>
-        Zeit: {new Date(problem.time).toLocaleString('de-DE')}
+        Time: {new Date(problem.time).toLocaleString('en-US')}
       </p>{/if}
-    {#if problem.logPath}<p>Protokoll: {problem.logPath}</p>{/if}
+    {#if problem.logPath}<p>Log: {problem.logPath}</p>{/if}
     <p>
       {problem.logged
-        ? 'Fehler lokal protokolliert.'
-        : 'Fehler konnte nicht lokal protokolliert werden.'}
+        ? 'Error logged locally.'
+        : 'Could not log error locally.'}
     </p>
   </details>
-  {#if problem.logIssue}<p><b>Protokollfehler:</b> {problem.logIssue}</p>{/if}
+  {#if problem.logIssue}<p><b>Logging error:</b> {problem.logIssue}</p>{/if}
 </div>
 
 <style>

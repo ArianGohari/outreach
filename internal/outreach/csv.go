@@ -18,17 +18,17 @@ var aliases = map[string]string{"first name": "First Name", "last name": "Last N
 func ParseCSV(data []byte, filename string, verified bool) (Report, error) {
 	out := Report{Filename: filename, OnlyVerified: verified, Contacts: []Contact{}, Issues: []Issue{}}
 	if len(data) > MaxCSVBytes {
-		return out, fmt.Errorf("CSV überschreitet 20 MB")
+		return out, fmt.Errorf("CSV exceeds 20 MB")
 	}
 	data = bytes.TrimPrefix(data, []byte{0xef, 0xbb, 0xbf})
 	if !utf8.Valid(data) || bytes.ContainsRune(data, 0) {
-		return out, fmt.Errorf("CSV muss gültiges UTF-8 ohne Nullzeichen enthalten")
+		return out, fmt.Errorf("CSV must be valid UTF-8 without null characters")
 	}
 	reader := csv.NewReader(bytes.NewReader(data))
 	reader.FieldsPerRecord = 0
 	headers, err := reader.Read()
 	if err != nil {
-		return out, fmt.Errorf("CSV-Kopfzeile: %w", err)
+		return out, fmt.Errorf("CSV header: %w", err)
 	}
 	seen := map[string]bool{}
 	for _, h := range headers {
@@ -38,14 +38,14 @@ func ParseCSV(data []byte, filename string, verified bool) (Report, error) {
 		}
 		key := strings.ToLower(h)
 		if h == "" || seen[key] || strings.ContainsAny(h, "{}|\r\n") || invalidText(h, false) {
-			return out, fmt.Errorf("Leere, doppelte oder mehrdeutige CSV-Spalte: %q", h)
+			return out, fmt.Errorf("Empty, duplicate or ambiguous CSV column: %q", h)
 		}
 		seen[key] = true
 		out.Headers = append(out.Headers, h)
 	}
 	for _, h := range []string{"first name", "last name", "email", "company name"} {
 		if !seen[h] {
-			return out, fmt.Errorf("Apollo-Kontaktexport nicht eindeutig erkannt: Spalte %q fehlt (Komma als Trennzeichen erforderlich)", h)
+			return out, fmt.Errorf("Apollo contact export could not be identified: column %q is missing (comma separators required)", h)
 		}
 	}
 	out.HasStatus = seen["email status"]
@@ -57,11 +57,11 @@ func ParseCSV(data []byte, filename string, verified bool) (Report, error) {
 			break
 		}
 		if e != nil {
-			return out, fmt.Errorf("CSV-Struktur fehlerhaft: %w", e)
+			return out, fmt.Errorf("Invalid CSV structure: %w", e)
 		}
 		out.Total++
 		if out.Total > 50000 {
-			return out, fmt.Errorf("Maximal 50.000 Kontakte pro Import")
+			return out, fmt.Errorf("Maximum 50,000 contacts per import")
 		}
 		line, _ := reader.FieldPos(0)
 		fields := map[string]string{}
@@ -80,7 +80,7 @@ func ParseCSV(data []byte, filename string, verified bool) (Report, error) {
 		if link := fields["Person Linkedin Url"]; link != "" {
 			u, e := url.Parse(link)
 			if e != nil || u.User != nil || (u.Scheme != "https" && u.Scheme != "http") || (strings.ToLower(u.Host) != "www.linkedin.com" && strings.ToLower(u.Host) != "linkedin.com") || !strings.HasPrefix(u.Path, "/in/") || len(strings.Trim(u.Path, "/")) <= 3 {
-				out.Issues = append(out.Issues, Issue{line, "LinkedIn-Personenkennung ungültig"})
+				out.Issues = append(out.Issues, Issue{line, "Invalid LinkedIn person identifier"})
 				continue
 			}
 			ids = append(ids, "linkedin:"+strings.ToLower(strings.TrimSuffix(u.Path, "/")))
@@ -135,20 +135,20 @@ func ParseCSV(data []byte, filename string, verified bool) (Report, error) {
 	}
 	for i, c := range candidates {
 		if strings.EqualFold(c.Fields["Email Bounced"], "true") {
-			out.Issues = append(out.Issues, Issue{c.Row, "Als unzustellbar markiert"})
+			out.Issues = append(out.Issues, Issue{c.Row, "Marked as bounced"})
 			continue
 		}
 		if verified && !strings.EqualFold(c.Fields["Email Status"], "verified") {
-			reason := "E-Mail nicht als verifiziert ausgewiesen"
+			reason := "Email is not marked as verified"
 			if !out.HasStatus {
-				reason = "Verifizierungsstatus nicht enthalten"
+				reason = "Verification status is missing"
 			}
 			out.Issues = append(out.Issues, Issue{c.Row, reason})
 			continue
 		}
 		group := root(i)
 		if used[group] {
-			out.Issues = append(out.Issues, Issue{c.Row, "Doppelter Kontakt oder doppelte E-Mail-Adresse"})
+			out.Issues = append(out.Issues, Issue{c.Row, "Duplicate contact or email address"})
 			continue
 		}
 		used[group] = true

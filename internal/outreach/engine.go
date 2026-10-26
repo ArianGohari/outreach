@@ -63,7 +63,7 @@ func (e *Engine) Start(p Plan, c Config) error {
 	e.mu.Lock()
 	defer e.mu.Unlock()
 	if e.cancel != nil {
-		return fmt.Errorf("Versand läuft bereits")
+		return fmt.Errorf("Sending is already running")
 	}
 	if err := e.store.Save(p); err != nil {
 		return err
@@ -73,7 +73,7 @@ func (e *Engine) Start(p Plan, c Config) error {
 		return err
 	}
 	if saved == nil {
-		return fmt.Errorf("Versandplan fehlt")
+		return fmt.Errorf("Sending plan is missing")
 	}
 	ctx, cancel := context.WithCancel(context.Background())
 	e.cancel = cancel
@@ -123,10 +123,10 @@ func (e *Engine) run(ctx context.Context, p Plan, c Config, done chan struct{}) 
 	}
 	defer func() {
 		if recover() != nil {
-			problem := fail("Versand", diagnostics.New("WORKER_PANIC", "Unerwarteter Fehler im Versandprozess", "Der Versand wurde angehalten. Eine laufende Übertragung könnte bereits angenommen worden sein.", "Keinen erneuten Versand der betroffenen Nachricht auslösen. Fehler-ID zur Diagnose verwenden.", nil))
+			problem := fail("Sending", diagnostics.New("WORKER_PANIC", "Unexpected sending error", "Sending has stopped. A transfer in progress may already have been accepted.", "Do not retry the affected message. Use the error ID for diagnosis.", nil))
 			if inFlight != nil {
 				if err := e.store.Finish(p, *inFlight, SendResult{Status: "uncertain", Detail: problem.Error()}, e.clock.Now()); err != nil {
-					fail("Versandstatus speichern", err)
+					fail("Save delivery status", err)
 				}
 			}
 		}
@@ -142,7 +142,7 @@ func (e *Engine) run(ctx context.Context, p Plan, c Config, done chan struct{}) 
 		}
 		s, err := e.store.State()
 		if err != nil {
-			fail("Versandstatus laden", err)
+			fail("Load delivery status", err)
 			return
 		}
 		pending := false
@@ -158,12 +158,12 @@ func (e *Engine) run(ctx context.Context, p Plan, c Config, done chan struct{}) 
 		if s.NextAt != "" {
 			at, err := time.Parse(time.RFC3339Nano, s.NextAt)
 			if err != nil {
-				fail("Versandpause lesen", err)
+				fail("Read sending pause", err)
 				return
 			}
 			if err = e.clock.Wait(ctx, at.Sub(e.clock.Now())); err != nil {
 				if !errors.Is(err, context.Canceled) {
-					fail("Versandpause", err)
+					fail("Sending pause", err)
 				}
 				return
 			}
@@ -181,7 +181,7 @@ func (e *Engine) run(ctx context.Context, p Plan, c Config, done chan struct{}) 
 			return
 		}
 		if err != nil {
-			fail("Empfänger vor Versand reservieren", err)
+			fail("Reserve recipient before sending", err)
 			return
 		}
 		if !claimed {
@@ -192,11 +192,11 @@ func (e *Engine) run(ctx context.Context, p Plan, c Config, done chan struct{}) 
 		e.emit()
 		result := e.sender.Send(context.Background(), c, m)
 		if result.Status != "sent" {
-			problem := fail(fmt.Sprintf("Versand · CSV-Zeile %d", m.Row), result.Err())
+			problem := fail(fmt.Sprintf("Sending · CSV row %d", m.Row), result.Err())
 			result.Detail = problem.Error()
 		}
 		if err = e.store.Finish(p, m, result, e.clock.Now()); err != nil {
-			fail("Versandstatus speichern", err)
+			fail("Save delivery status", err)
 			return
 		}
 		inFlight = nil

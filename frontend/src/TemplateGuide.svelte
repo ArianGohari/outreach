@@ -11,94 +11,93 @@
     'City',
   ];
   const descriptions: Record<string, string> = {
-    'First Name': 'Vorname, z. B. Jane',
-    'Last Name': 'Nachname, z. B. Doe',
-    Title: 'Position / Berufsbezeichnung, z. B. Head of Sales',
-    'Company Name': 'Firmenname, z. B. Beispiel GmbH',
-    Email: 'Kontaktadresse; ändert nicht den Versandempfänger.',
-    'Contact Owner': 'Zuständige Person in Apollo.',
-    'Person Linkedin Url': 'Link zum LinkedIn-Profil des Kontakts',
-    City: 'Ort des Kontakts, z. B. Berlin',
-    Industry: 'Branche des Kontakts / Unternehmens',
-    'Email Status': 'Verifizierungsstatus aus Apollo, z. B. verified',
-    'Apollo Contact Id': 'Kontaktkennung aus Apollo',
-    'Email Bounced': 'Bounce-Angabe aus Apollo',
+    'First Name': 'First name, e.g. Jane',
+    'Last Name': 'Last name, e.g. Doe',
+    Title: 'Job title, e.g. Head of Sales',
+    'Company Name': 'Company name, e.g. Example Inc.',
+    Email: 'Contact address; does not change the recipient.',
+    'Contact Owner': 'Contact owner in Apollo',
+    'Person Linkedin Url': 'Contact LinkedIn profile URL',
+    City: 'Contact city, e.g. London',
+    Industry: 'Contact or company industry',
+    'Email Status': 'Apollo verification status, e.g. verified',
+    'Apollo Contact Id': 'Apollo contact identifier',
+    'Email Bounced': 'Apollo bounce status',
   };
   const columns = $derived(headers ?? standardColumns);
 </script>
 
 <details class="template-guide">
-  <summary>Template-Tags & Anleitung</summary>
+  <summary>Template tags & guide</summary>
   <div class="guide-content">
     <p>
-      <code>{'{{Spaltenname}}'}</code> fügt den CSV-Wert in Betreff oder Text ein.
+      <code>{'{{Column Name}}'}</code> inserts a CSV value into the subject or body.
     </p>
-    <h3>Verfügbare Tags</h3>
+    <h3>Available tags</h3>
     <p class="hint">
-      {headers ? 'Importierte Spalten.' : 'Standardfelder vor dem CSV-Import.'} Schreibweise
-      genau übernehmen.
+      {headers ? 'Imported columns.' : 'Standard fields before CSV import.'} Use the
+      exact spelling.
     </p>
     <div class="table-wrap">
-      <table aria-label="Verfügbare Template-Tags">
-        <thead><tr><th>Tag</th><th>Wert / Bedeutung</th></tr></thead>
+      <table aria-label="Available template tags">
+        <thead><tr><th>Tag</th><th>Value / meaning</th></tr></thead>
         <tbody>
           {#each columns as column}
-            <tr
-              ><td><code>{'{{' + column + '}}'}</code></td><td
+            <tr>
+              <td><code>{'{{' + column + '}}'}</code></td>
+              <td
                 >{descriptions[column] ??
-                  'Wert aus der gleichnamigen CSV-Spalte'}</td
-              ></tr
-            >
+                  'Value from the matching CSV column'}</td
+              >
+            </tr>
           {/each}
           {#if columns.includes('Company Name')}
-            <tr
-              ><td><code>{'{{Company}}'}</code></td><td
-                >Alias für <code>{'{{Company Name}}'}</code>.</td
-              ></tr
-            >
+            <tr>
+              <td><code>{'{{Company}}'}</code></td>
+              <td>Alias for <code>{'{{Company Name}}'}</code>.</td>
+            </tr>
           {/if}
         </tbody>
       </table>
     </div>
-    <h3>Leere Felder und Ersatzwerte</h3>
+    <h3>Empty fields and fallbacks</h3>
     <p>
-      <code>{'{{Spaltenname|Ersatztext}}'}</code> verwendet den Ersatztext, wenn das
-      Feld leer ist.
+      <code>{'{{Column Name|fallback}}'}</code> uses the fallback when the field is
+      empty.
     </p>
     <ul>
       <li>
-        <code>{'Hallo {{First Name|zusammen}},'}</code> ergibt „Hallo Jane,“ oder
-        bei leerem Vornamen „Hallo zusammen,“.
+        <code>{'Hi {{First Name|there}},'}</code> produces "Hi Jane," or "Hi there,"
+        if the first name is empty.
       </li>
       <li>
-        <code>{'{{Company Name|deinem Unternehmen}}'}</code> setzt den Firmennamen
-        ein, sonst „deinem Unternehmen“.
+        <code>{'{{Company Name|your company}}'}</code> inserts the company name, or
+        "your company" if empty.
       </li>
       <li>
-        <code>{'{{Title|}}'}</code> setzt bei leerer Position nichts ein. Umgebender
-        Text und Satzzeichen bleiben stehen.
+        <code>{'{{Title|}}'}</code> inserts nothing if the title is empty. Surrounding
+        text and punctuation stay in place.
       </li>
     </ul>
     <p>
-      Leere Felder ohne Ersatz blockieren den Versand. Fehlende Spalten sind
-      auch mit Ersatzwert ungültig.
+      Empty fields without a fallback block sending. Missing columns are invalid
+      even with a fallback.
     </p>
-    <h3>Beispiel</h3>
+    <h3>Example</h3>
     <div class="guide-example">
-      <span class="label">Betreff</span>
-      <pre>{'Kurze Frage, {{First Name}}'}</pre>
-      <span class="label">Text</span>
-      <pre>{'Hallo {{First Name|zusammen}},\n\nich habe eine Frage zu {{Company Name|deinem Unternehmen}}.\nHast du diese Woche Zeit für einen kurzen Austausch?'}</pre>
+      <span class="label">Subject</span>
+      <pre>{'Quick question, {{First Name}}'}</pre>
+      <span class="label">Body</span>
+      <pre>{'Hi {{First Name|there}},\n\nI have a question about {{Company Name|your company}}.\nDo you have time for a quick chat this week?'}</pre>
     </div>
-    <h3>Versand</h3>
+    <h3>Sending</h3>
     <p>
-      Die Vorschau prüft alle Kontakte. Mit den Pfeilen wechselst du den
-      Empfänger. Testmail im Posteingang prüfen.
+      Preview validates all contacts. Use the arrows to switch recipients. Check
+      the test email in your inbox.
     </p>
     <p>
-      Nur Text: keine HTML-/Markdown-Formatierung, Bedingungen, Schleifen oder
-      verschachtelten Tags. Signatur selbst einfügen. Keine Zeilenumbrüche im
-      Betreff.
+      Plain text only: no HTML, Markdown, conditions, loops or nested tags. Add
+      a signature yourself if needed. No line breaks in the subject.
     </p>
   </div>
 </details>

@@ -27,7 +27,7 @@ func OpenStore(path string) (*Store, error) {
 		return nil, e
 	}
 	if !ok {
-		return nil, fmt.Errorf("Die Versanddatenbank ist bereits in einer anderen App-Instanz geöffnet")
+		return nil, fmt.Errorf("The sending database is already open in another app instance")
 	}
 	db, e := sql.Open("sqlite", path)
 	if e != nil {
@@ -41,7 +41,7 @@ func OpenStore(path string) (*Store, error) {
  CREATE TABLE IF NOT EXISTS deliveries(plan_id TEXT NOT NULL, key TEXT NOT NULL, recipient TEXT NOT NULL, position INTEGER NOT NULL, status TEXT NOT NULL DEFAULT 'pending', detail TEXT NOT NULL DEFAULT '', updated TEXT NOT NULL DEFAULT '', PRIMARY KEY(plan_id,key), UNIQUE(plan_id,recipient));
  CREATE TABLE IF NOT EXISTS receipts(token TEXT PRIMARY KEY, plan_id TEXT NOT NULL);
  CREATE TABLE IF NOT EXISTS meta(key TEXT PRIMARY KEY,value TEXT NOT NULL);
- UPDATE deliveries SET status='uncertain', detail='App während einer Sendung beendet; kein erneuter Versuch' WHERE status='sending';`)
+ UPDATE deliveries SET status='uncertain', detail='App closed during sending; retry blocked' WHERE status='sending';`)
 	if e != nil {
 		s.Close()
 		return nil, e
@@ -74,7 +74,7 @@ func (s *Store) Save(p Plan) error {
 		expectedScope = ""
 	}
 	if p.JobID != expectedScope {
-		return fmt.Errorf("Versandplan gehört zu einem anderen Job")
+		return fmt.Errorf("The sending plan belongs to another job")
 	}
 
 	if e := ValidatePlan(p); e != nil {
@@ -171,7 +171,7 @@ func (s *Store) Claim(p Plan, m Message, now time.Time) (bool, error) {
 		}
 		n, _ := result.RowsAffected()
 		if n == 0 {
-			if _, e = tx.Exec("UPDATE deliveries SET status='blocked',detail='Diese Nachricht wurde für diesen Kontakt bereits begonnen oder versendet',updated=? WHERE plan_id=? AND key=?", now.UTC().Format(time.RFC3339Nano), p.ID, m.Key); e != nil {
+			if _, e = tx.Exec("UPDATE deliveries SET status='blocked',detail='Sending this message to this contact has already been attempted',updated=? WHERE plan_id=? AND key=?", now.UTC().Format(time.RFC3339Nano), p.ID, m.Key); e != nil {
 				return false, e
 			}
 			return false, tx.Commit()
@@ -189,7 +189,7 @@ func (s *Store) Claim(p Plan, m Message, now time.Time) (bool, error) {
 }
 func (s *Store) Finish(p Plan, m Message, result SendResult, now time.Time) error {
 	if result.Status != "sent" && result.Status != "failed" && result.Status != "uncertain" {
-		return fmt.Errorf("Ungültiger Versandstatus")
+		return fmt.Errorf("Invalid delivery status")
 	}
 	tx, e := s.db.Begin()
 	if e != nil {
@@ -202,7 +202,7 @@ func (s *Store) Finish(p Plan, m Message, result SendResult, now time.Time) erro
 	}
 	n, _ := r.RowsAffected()
 	if n != 1 {
-		return fmt.Errorf("Versandstatus konnte nicht eindeutig gespeichert werden")
+		return fmt.Errorf("Could not reliably save delivery status")
 	}
 	var count int
 	if e = tx.QueryRow("SELECT count(*) FROM deliveries WHERE plan_id=? AND status IN ('sent','failed','uncertain')", p.ID).Scan(&count); e != nil {

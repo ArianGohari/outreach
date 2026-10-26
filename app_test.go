@@ -94,7 +94,7 @@ func TestAppDiagnosticBoundaryAndStartupFailure(t *testing.T) {
 	}
 	err = app.CheckConnection(view.ID, outreach.Config{Password: "do-not-log-this"})
 	var problem *diagnostics.Problem
-	if !errors.As(err, &problem) || !problem.Logged || !strings.HasPrefix(problem.Operation, "SMTP-Verbindung prüfen") {
+	if !errors.As(err, &problem) || !problem.Logged || !strings.HasPrefix(problem.Operation, "Check SMTP connection") {
 		t.Fatal(err)
 	}
 	b, err := os.ReadFile(log.Path())
@@ -112,7 +112,7 @@ func TestAppDiagnosticBoundaryAndStartupFailure(t *testing.T) {
 	if _, isError := any(local).(error); isError {
 		t.Fatal("Wails must return the log receipt as data, not reject it as an error")
 	}
-	if !local.Logged || !strings.Contains(local.Details, "24 Stunden") {
+	if !local.Logged || !strings.Contains(local.Details, "24 hours") {
 		t.Fatal(local)
 	}
 }
@@ -131,7 +131,7 @@ func TestExamplePreviewAndDesktopErrorTransport(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	view, err := app.CreateJob("Neuer Job")
+	view, err := app.CreateJob("New job")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -158,7 +158,7 @@ func TestExamplePreviewAndDesktopErrorTransport(t *testing.T) {
 	if err = json.Unmarshal([]byte(wire), &received); err != nil {
 		t.Fatal(err)
 	}
-	if !received.Logged || received.ID == "" || !strings.Contains(received.Details, "Betreff leer") {
+	if !received.Logged || received.ID == "" || !strings.Contains(received.Details, "subject is empty") {
 		t.Fatal("diagnostics lost", wire)
 	}
 	data, err := os.ReadFile(log.Path())
