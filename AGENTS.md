@@ -74,7 +74,7 @@ First Name,Last Name,Title,Company Name,Email,Contact Owner,Person Linkedin Url,
 
 | Bereich | Dateien |
 |---|---|
-| Desktop-Bindings und Fehlertransport | `app.go`, `main.go`, `framework_logger.go` |
+| Desktop-Bindings und Fehlertransport | `app.go`, `desktop.go`, `main.go`, `framework_logger.go` |
 | Jobs, Sperren, Entwürfe, Löschen | `internal/outreach/jobs.go` |
 | Import und Personenabgleich | `internal/outreach/csv.go`, `history.go` |
 | Templates und Beispielkontakt | `internal/outreach/template.go`, `example.go` |
@@ -98,7 +98,9 @@ npx playwright install chromium webkit
 npm run test:e2e
 ```
 
-`make test` baut zuerst das Frontend, dann folgen Vitest, `go test -race ./...` und `go vet ./...`. Go bettet `frontend/dist` ein: Niemals Go-Kompilierung und einen Vite-Build gleichzeitig ausführen, der diesen Ordner ersetzt. Wails-Builds ebenfalls nacheinander ausführen, weil sie Dateien generieren.
+`make test` baut zuerst das Frontend, dann folgen Vitest, `go test -race -tags integration ./...` und `go vet -tags integration ./...`. Go bettet `frontend/dist` ein: Niemals Go-Kompilierung und einen Vite-Build gleichzeitig ausführen, der diesen Ordner ersetzt. Wails-Builds ebenfalls nacheinander ausführen, weil sie Dateien generieren.
+
+`make test-native` ergänzt den echten OS-Schlüsselbund und die native Wails-WebView mit isolierter SQLite-Datenbank und lokalem TLS-SMTP. Die Testprogramme mit `integration,nativee2e` niemals als Release verteilen. [TESTING.md](TESTING.md) enthält die Testmatrix, einzelne Befehle und die noch manuell zu prüfenden Betriebssystemfälle. Der Prozessabsturz-Test beendet ausschließlich seinen eigenen Test-Unterprozess.
 
 Auf Windows ohne Make die Befehle aus `README.md` verwenden. Für Versand-, Store- und Job-Änderungen Go-Race-Tests ausführen. Für UI-Änderungen Svelte/TypeScript-Check, Vitest und die betroffenen Playwright-Flows auf Chromium und WebKit prüfen. Keine tatsächliche Zustellung oder Windows-11-Kompatibilität aus Browser-Mocks ableiten.
 

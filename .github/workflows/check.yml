@@ -59,8 +59,14 @@ jobs:
         working-directory: frontend
       - run: npm run test:e2e
         working-directory: frontend
-      - run: go test -race ./...
-      - run: go vet ./...
+      - run: go test -race -tags integration -coverprofile=coverage.out ./...
+        env:
+          OUTREACH_OS_TESTS: '1'
+      - run: go vet -tags integration ./...
+      - name: Fuzz CSV parser
+        run: go test ./internal/outreach -run '^$' -fuzz '^FuzzCSVNeverPanics$' -fuzztime=10s
+      - name: Native WebView, Wails, SQLite and TLS SMTP
+        run: node scripts/native-e2e.mjs
       - run: go install github.com/wailsapp/wails/v2/cmd/wails@v2.17.0
       - run: wails build -platform ${{ matrix.platform }}
       - name: Package macOS app

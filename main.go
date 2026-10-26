@@ -1,25 +1,36 @@
+//go:build !nativee2e
+
 package main
 
 import (
-	"embed"
 	"fmt"
 	"github.com/wailsapp/wails/v2"
-	"github.com/wailsapp/wails/v2/pkg/options"
-	"github.com/wailsapp/wails/v2/pkg/options/assetserver"
 	"os"
 	"outreach/internal/diagnostics"
 	"outreach/internal/outreach"
 	"path/filepath"
 )
 
-//go:embed all:frontend/dist
-var assets embed.FS
-
 func main() {
 	dir, configErr := os.UserConfigDir()
 	if configErr != nil {
 		dir = os.TempDir()
 	}
+	app, store := openApp(dir, configErr)
+	if store != nil {
+		defer func() {
+			if err := store.Close(); err != nil {
+				app.reporter.Report("Datenbank schließen", err)
+			}
+		}()
+	}
+	if err := wails.Run(desktopOptions(app)); err != nil {
+		problem := app.reporter.Report("Desktop-Fenster öffnen", err)
+		fmt.Fprintln(os.Stderr, problem.Error())
+	}
+}
+
+func openApp(dir string, configErr error) (*App, *outreach.Store) {
 	log, logErr := diagnostics.OpenLog(filepath.Join(dir, "Outreach", "logs"))
 	var recorder diagnostics.Recorder
 	if log != nil {
@@ -39,19 +50,8 @@ func main() {
 			app, startupErr = NewApp(store, reporter)
 		}
 	}
-	if store != nil {
-		defer func() {
-			if err := store.Close(); err != nil {
-				reporter.Report("Datenbank schließen", err)
-			}
-		}()
-	}
 	if startupErr != nil {
 		app = &App{reporter: reporter, startupProblem: reporter.Report("App starten", startupErr)}
 	}
-	err := wails.Run(&options.App{Title: "Outreach", Width: 1000, Height: 900, MinWidth: 640, MinHeight: 600, AssetServer: &assetserver.Options{Assets: assets}, BackgroundColour: &options.RGBA{R: 255, G: 255, B: 255, A: 255}, OnStartup: app.startup, OnShutdown: app.shutdown, OnBeforeClose: app.beforeClose, Bind: []interface{}{app}, ErrorFormatter: app.formatError, Logger: &frameworkLogger{reporter: reporter, notify: app.notifyProblem}})
-	if err != nil {
-		problem := reporter.Report("Desktop-Fenster öffnen", err)
-		fmt.Fprintln(os.Stderr, problem.Error())
-	}
+	return app, store
 }

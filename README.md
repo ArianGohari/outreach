@@ -23,11 +23,11 @@ Read [AGENTS.md](AGENTS.md) for architecture, product decisions and sending safe
 ```sh
 npm --prefix frontend run build
 npm --prefix frontend test
-go test -race ./...
-go vet ./...
+go test -race -tags integration ./...
+go vet -tags integration ./...
 ```
 
-Browser tests: run `npx playwright install chromium webkit` and `npm run test:e2e` inside `frontend`. Go race tests require a C compiler. Tests send no real emails.
+[Test coverage and native checks](TESTING.md). Go race tests require a C compiler. Tests send no external emails.
 
 Build with `make build-mac` or `make build-windows`. On Windows without Make, use `wails build -platform windows/amd64`. Output: `build/bin/`. Run builds sequentially.
 

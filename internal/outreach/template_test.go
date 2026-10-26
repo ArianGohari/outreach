@@ -85,6 +85,37 @@ func TestAddressAndHeaderValidation(t *testing.T) {
 		}
 	}
 }
+
+func TestSMTPConfigurationValidation(t *testing.T) {
+	for name, change := range map[string]func(*Config){
+		"empty host":         func(c *Config) { c.Host = "" },
+		"URL":                func(c *Config) { c.Host = "https://smtp.example.org" },
+		"host with port":     func(c *Config) { c.Host = "smtp.example.org:587" },
+		"port zero":          func(c *Config) { c.Port = 0 },
+		"port too high":      func(c *Config) { c.Port = 65536 },
+		"no username":        func(c *Config) { c.Username = "" },
+		"no password":        func(c *Config) { c.Password = "" },
+		"invalid sender":     func(c *Config) { c.From = "bad" },
+		"invalid reply to":   func(c *Config) { c.ReplyTo = "one@example.org,two@example.org" },
+		"username injection": func(c *Config) { c.From = "safe@example.org"; c.Username = "user\nAUTH" },
+	} {
+		t.Run(name, func(t *testing.T) {
+			c := validRequest().Config
+			change(&c)
+			if err := c.Validate(); err == nil {
+				t.Fatal("unsafe configuration accepted")
+			}
+		})
+	}
+	c := validRequest().Config
+	c.Username, c.From, c.ReplyTo = "smtp-login", "sender@example.org", "replies@example.org"
+	if err := c.Validate(); err != nil {
+		t.Fatal(err)
+	}
+	if c.Sender() != c.From {
+		t.Fatal("explicit sender ignored")
+	}
+}
 func TestPlanAndMessageIDsAreStable(t *testing.T) {
 	a := samplePlan(t)
 	b := samplePlan(t)

@@ -74,6 +74,35 @@ func TestLoggingFailureIsVisible(t *testing.T) {
 		}
 	}
 }
+
+type databaseFault int
+
+func (e databaseFault) Error() string { return "synthetic database failure" }
+func (e databaseFault) Code() int     { return int(e) }
+
+func TestStorageFailuresHaveActionableDiagnostics(t *testing.T) {
+	for _, tc := range []struct {
+		err  error
+		code string
+	}{
+		{databaseFault(13), "DATABASE_FULL"}, {databaseFault(8), "DATABASE_READ_ONLY"},
+		{databaseFault(5), "DATABASE_BUSY"}, {databaseFault(6), "DATABASE_BUSY"},
+		{databaseFault(11), "DATABASE_CORRUPT"}, {databaseFault(26), "DATABASE_CORRUPT"},
+		{databaseFault(1), "DATABASE_ERROR"}, {os.ErrPermission, "FILE_PERMISSION"}, {os.ErrNotExist, "FILE_NOT_FOUND"},
+	} {
+		t.Run(tc.code, func(t *testing.T) {
+			p := NewReporter(nil).Report("Save", fmt.Errorf("wrapped: %w", tc.err))
+			if p.Code != tc.code || p.Hint == "" || p.Details == "" {
+				t.Fatal(p)
+			}
+		})
+	}
+	for operation, hint := range map[string]string{"CSV importieren": "UTF-8", "Vorschau": "Platzhalter", "Testmail": "Testadresse", "Versand": "Status", "Schlüsselbund": "entsperren"} {
+		if p := NewReporter(nil).Report(operation, errors.New("failed")); !strings.Contains(p.Hint, hint) {
+			t.Fatal(p)
+		}
+	}
+}
 func TestConcurrentLogWritersAndRotation(t *testing.T) {
 	dir := t.TempDir()
 	first, err := OpenLog(dir)

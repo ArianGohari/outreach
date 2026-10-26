@@ -18,17 +18,22 @@ type App struct {
 	jobs           *outreach.Jobs
 	reporter       *diagnostics.Reporter
 	startupProblem *diagnostics.Problem
+	services       *desktopServices
 }
 
 func NewApp(store *outreach.Store, reporters ...*diagnostics.Reporter) (*App, error) {
+	return newApp(store, outreach.SMTPSender{}, outreach.RealClock{}, reporters...)
+}
+
+func newApp(store *outreach.Store, sender outreach.Sender, clock outreach.Clock, reporters ...*diagnostics.Reporter) (*App, error) {
 	a := &App{}
 	if len(reporters) > 0 {
 		a.reporter = reporters[0]
 	}
 	var err error
-	a.jobs, err = outreach.NewJobs(store, outreach.SMTPSender{}, outreach.RealClock{}, a.reporter, func() {
+	a.jobs, err = outreach.NewJobs(store, sender, clock, a.reporter, func() {
 		if a.ctx != nil {
-			runtime.EventsEmit(a.ctx, "outreach:changed")
+			a.desktop().emit(a.ctx, "outreach:changed")
 		}
 	})
 	if err != nil {
@@ -62,7 +67,7 @@ func (a *App) shutdown(ctx context.Context) {
 }
 func (a *App) notifyProblem(p *diagnostics.Problem) {
 	if a.ctx != nil {
-		runtime.EventsEmit(a.ctx, "outreach:error", p)
+		a.desktop().emit(a.ctx, "outreach:error", p)
 	}
 }
 func (a *App) beforeClose(ctx context.Context) bool {
@@ -83,7 +88,7 @@ func (a *App) beforeClose(ctx context.Context) bool {
 	if count == 0 {
 		return false
 	}
-	answer, err := runtime.MessageDialog(ctx, runtime.MessageDialogOptions{Type: runtime.QuestionDialog, Title: "Jobs pausieren und beenden?", Message: fmt.Sprintf("%d Jobs laufen. Bereits laufende Übertragungen werden abgeschlossen. Nach dem Öffnen müssen die Jobs manuell fortgesetzt werden.", count), Buttons: []string{"Weiter geöffnet lassen", "Pausieren und beenden"}, DefaultButton: "Weiter geöffnet lassen", CancelButton: "Weiter geöffnet lassen"})
+	answer, err := a.desktop().message(ctx, runtime.MessageDialogOptions{Type: runtime.QuestionDialog, Title: "Jobs pausieren und beenden?", Message: fmt.Sprintf("%d Jobs laufen. Bereits laufende Übertragungen werden abgeschlossen. Nach dem Öffnen müssen die Jobs manuell fortgesetzt werden.", count), Buttons: []string{"Weiter geöffnet lassen", "Pausieren und beenden"}, DefaultButton: "Weiter geöffnet lassen", CancelButton: "Weiter geöffnet lassen"})
 	if err != nil {
 		a.notifyProblem(a.reporter.Report("Bestätigungsdialog öffnen", err))
 		return true
@@ -141,7 +146,7 @@ func (a *App) ChooseCSV(id string, verified bool) (report outreach.Report, err e
 		return
 	}
 	defer release()
-	path, e := runtime.OpenFileDialog(a.ctx, runtime.OpenDialogOptions{Title: "Apollo-Kontaktexport auswählen", Filters: []runtime.FileFilter{{DisplayName: "CSV-Dateien", Pattern: "*.csv"}}})
+	path, e := a.desktop().openFile(a.ctx, runtime.OpenDialogOptions{Title: "Apollo-Kontaktexport auswählen", Filters: []runtime.FileFilter{{DisplayName: "CSV-Dateien", Pattern: "*.csv"}}})
 	if e != nil {
 		return report, e
 	}
@@ -214,11 +219,11 @@ func (a *App) CheckConnection(id string, c outreach.Config) (err error) {
 		return e
 	}
 	if c.Remember {
-		if e := keyring.Set("Outreach", credentialID(c), c.Password); e != nil {
+		if e := a.desktop().setPassword("Outreach", credentialID(c), c.Password); e != nil {
 			return diagnostics.New("KEYCHAIN_SAVE", "SMTP verbunden, aber Passwort nicht gespeichert", e.Error(), "Betriebssystem-Schlüsselbund entsperren oder das Speichern des Passworts deaktivieren und die Verbindung erneut prüfen.", e)
 		}
 	} else {
-		if e := keyring.Delete("Outreach", credentialID(c)); e != nil && e != keyring.ErrNotFound {
+		if e := a.desktop().deletePassword("Outreach", credentialID(c)); e != nil && e != keyring.ErrNotFound {
 			return diagnostics.New("KEYCHAIN_DELETE", "Gespeichertes Passwort konnte nicht entfernt werden", e.Error(), "Zugriff auf den Betriebssystem-Schlüsselbund prüfen und erneut versuchen.", e)
 		}
 	}
@@ -232,7 +237,7 @@ func (a *App) LoadPassword(c outreach.Config) (password string, err error) {
 	if !c.Remember {
 		return "", nil
 	}
-	password, e := keyring.Get("Outreach", credentialID(c))
+	password, e := a.desktop().getPassword("Outreach", credentialID(c))
 	if e != nil {
 		return "", diagnostics.New("KEYCHAIN_READ", "Gespeichertes Passwort nicht verfügbar", e.Error(), "Passwort erneut eingeben oder den Betriebssystem-Schlüsselbund entsperren.", e)
 	}
@@ -268,7 +273,7 @@ func (a *App) Start(id string, r outreach.Request, token string) (err error) {
 	if p.Report.PreviouslyContacted > 0 {
 		historyNotice = fmt.Sprintf("\n%d Kontakte wurden bereits angeschrieben oder haben einen unklaren Versandstatus. Identische Nachrichten bleiben über alle Jobs und Absender hinweg gesperrt. Geänderte Nachrichten können bei einem neuen Versandplan erneut versendet werden.\n", p.Report.PreviouslyContacted)
 	}
-	answer, e := runtime.MessageDialog(a.ctx, runtime.MessageDialogOptions{Type: runtime.QuestionDialog, Title: "Outreach-Versand starten?", Message: fmt.Sprintf("%d geprüfte Kontakte. Absender: %s\n\nBereits bearbeitete Einträge desselben Versandplans werden übersprungen. %d ausgeschlossene CSV-Einträge werden nicht angeschrieben. Jetzt starten oder fortsetzen?", len(p.Messages), r.Config.Sender(), len(p.Report.Issues)) + historyNotice, Buttons: []string{"Abbrechen", "Versand starten"}, DefaultButton: "Abbrechen", CancelButton: "Abbrechen"})
+	answer, e := a.desktop().message(a.ctx, runtime.MessageDialogOptions{Type: runtime.QuestionDialog, Title: "Outreach-Versand starten?", Message: fmt.Sprintf("%d geprüfte Kontakte. Absender: %s\n\nBereits bearbeitete Einträge desselben Versandplans werden übersprungen. %d ausgeschlossene CSV-Einträge werden nicht angeschrieben. Jetzt starten oder fortsetzen?", len(p.Messages), r.Config.Sender(), len(p.Report.Issues)) + historyNotice, Buttons: []string{"Abbrechen", "Versand starten"}, DefaultButton: "Abbrechen", CancelButton: "Abbrechen"})
 	if e != nil {
 		return e
 	}

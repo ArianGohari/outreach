@@ -85,6 +85,60 @@ beforeEach(() => {
 });
 afterEach(() => vi.unstubAllGlobals());
 describe('workspace', () => {
+  it('loads a remembered account without copying another job’s password or content', async () => {
+    jobs[0].draft.request.config.remember = true;
+    jobs[0].draft.request.config.password = 'must-not-copy';
+    vi.mocked(api.LoadPassword).mockResolvedValue('from-keyring');
+    render(App);
+    await fireEvent.click(
+      await screen.findByRole('button', {
+        name: /Beta.*b@example.org.*Entwurf/,
+      }),
+    );
+    const select = await screen.findByLabelText('Absender-Konto übernehmen');
+    await waitFor(() =>
+      expect((select as HTMLSelectElement).disabled).toBe(false),
+    );
+    await fireEvent.change(select, { target: { value: 'a' } });
+    await waitFor(() =>
+      expect(
+        (screen.getByLabelText('Passwort') as HTMLInputElement).value,
+      ).toBe('from-keyring'),
+    );
+    expect(api.LoadPassword).toHaveBeenCalledWith(
+      expect.objectContaining({ username: 'a@example.org', password: '' }),
+    );
+    expect((screen.getByLabelText('Betreff') as HTMLInputElement).value).toBe(
+      'Subject Beta',
+    );
+    expect(
+      (screen.getByRole('button', { name: 'Senden' }) as HTMLButtonElement)
+        .disabled,
+    ).toBe(true);
+    expect(api.CheckConnection).not.toHaveBeenCalled();
+    expect(api.SendTest).not.toHaveBeenCalled();
+  });
+  it('shows a keyring read failure and leaves the password blank', async () => {
+    jobs[0].draft.request.config.remember = true;
+    vi.mocked(api.LoadPassword).mockRejectedValue({
+      code: 'KEYCHAIN_READ',
+      message: 'Schlüsselbund gesperrt',
+      logged: true,
+    });
+    render(App);
+    await fireEvent.click(
+      await screen.findByRole('button', {
+        name: /Alpha.*a@example.org.*Entwurf/,
+      }),
+    );
+    expect((await screen.findByRole('alert')).textContent).toContain(
+      'Schlüsselbund gesperrt',
+    );
+    expect((screen.getByLabelText('Passwort') as HTMLInputElement).value).toBe(
+      '',
+    );
+    expect(api.Start).not.toHaveBeenCalled();
+  });
   it('confirms deletion, removes the open tab and keeps other jobs', async () => {
     render(App);
     await fireEvent.click(

@@ -31,6 +31,7 @@ type localSMTP struct {
 	recipients []string
 	mode       string
 	wg         sync.WaitGroup
+	ackRelease chan struct{}
 }
 
 func startSMTP(t *testing.T, mode string) *localSMTP {
@@ -55,6 +56,9 @@ func startSMTP(t *testing.T, mode string) *localSMTP {
 		t.Fatal(e)
 	}
 	s := &localSMTP{listener: listener, cert: tls.Certificate{Certificate: [][]byte{der}, PrivateKey: key}, roots: roots, mode: mode}
+	if mode == "hold-ack" {
+		s.ackRelease = make(chan struct{})
+	}
 	s.wg.Add(1)
 	go func() {
 		defer s.wg.Done()
@@ -67,7 +71,17 @@ func startSMTP(t *testing.T, mode string) *localSMTP {
 			go func() { defer s.wg.Done(); s.serve(conn) }()
 		}
 	}()
-	t.Cleanup(func() { listener.Close(); s.wg.Wait() })
+	t.Cleanup(func() {
+		listener.Close()
+		if s.ackRelease != nil {
+			select {
+			case <-s.ackRelease:
+			default:
+				close(s.ackRelease)
+			}
+		}
+		s.wg.Wait()
+	})
 	return s
 }
 func (s *localSMTP) serve(conn net.Conn) {
@@ -132,6 +146,9 @@ func (s *localSMTP) serve(conn net.Conn) {
 			s.mu.Lock()
 			s.messages = append(s.messages, string(data))
 			s.mu.Unlock()
+			if s.ackRelease != nil {
+				<-s.ackRelease
+			}
 			if s.mode == "drop-ack" {
 				return
 			}

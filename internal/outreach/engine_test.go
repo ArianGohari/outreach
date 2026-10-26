@@ -122,6 +122,57 @@ func TestEnginePersistsBatchesAndNeverResends(t *testing.T) {
 		t.Fatal("reimport bypassed receipts")
 	}
 }
+
+func TestBatchPauseSurvivesRestartAndClockChanges(t *testing.T) {
+	for _, elapsed := range []time.Duration{0, 15 * time.Minute, 2 * time.Hour, -time.Hour} {
+		t.Run(elapsed.String(), func(t *testing.T) {
+			path := filepath.Join(t.TempDir(), "restart.db")
+			store, err := OpenStore(path)
+			if err != nil {
+				t.Fatal(err)
+			}
+			p, clock := samplePlan(t), newClock()
+			if err = store.Save(p); err != nil {
+				t.Fatal(err)
+			}
+			// Finish a complete batch, then restart before or after its persisted deadline.
+			for _, m := range p.Messages[:2] {
+				if claimed, err := store.Claim(p, m, clock.Now()); err != nil || !claimed {
+					t.Fatal(claimed, err)
+				}
+				if err = store.Finish(p, m, SendResult{Status: "sent"}, clock.Now()); err != nil {
+					t.Fatal(err)
+				}
+			}
+			if err = store.Close(); err != nil {
+				t.Fatal(err)
+			}
+			store, err = OpenStore(path)
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer store.Close()
+			clock.now = clock.now.Add(elapsed)
+			sender := &fakeSender{}
+			engine := NewEngine(store, sender, clock, nil)
+			if err = engine.Start(p, validRequest().Config); err != nil {
+				t.Fatal(err)
+			}
+			waitEngine(t, engine)
+			if sender.count() != 1 {
+				t.Fatal("restart repeated completed recipients", sender.count())
+			}
+			remaining := time.Hour - elapsed
+			if remaining > 0 {
+				if len(clock.waits) != 1 || clock.waits[0] != remaining {
+					t.Fatal("persisted batch pause lost", clock.waits)
+				}
+			} else if len(clock.waits) != 0 {
+				t.Fatal("expired pause repeated", clock.waits)
+			}
+		})
+	}
+}
 func TestConcurrentStartAndStop(t *testing.T) {
 	s := testStore(t)
 	f := &fakeSender{entered: make(chan struct{}, 1), release: make(chan struct{})}
