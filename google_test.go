@@ -2,31 +2,16 @@ package main
 
 import (
 	"context"
-	"os"
 	"outreach/internal/googlemail"
-	"path/filepath"
 	"testing"
-
-	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
-func TestGoogleDesktopImportAndCancelledLogin(t *testing.T) {
+func TestGoogleDesktopCancelledLogin(t *testing.T) {
 	a, _, _ := desktopFixture(t)
 	values := map[string]string{}
 	a.google = googlemail.New(googlemail.Vault{Get: func(k string) (string, error) { return values[k], nil }, Set: func(k, v string) error { values[k] = v; return nil }, Delete: func(k string) error { delete(values, k); return nil }})
-	if ok, err := a.GoogleConfigured(); err != nil || ok {
-		t.Fatal(ok, err)
-	}
-	path := filepath.Join(t.TempDir(), "client.json")
-	if err := os.WriteFile(path, []byte(`{"installed":{"client_id":"test.apps.googleusercontent.com","client_secret":"synthetic-only"}}`), 0600); err != nil {
+	if err := a.google.ImportClient([]byte(`{"installed":{"client_id":"test.apps.googleusercontent.com","client_secret":"synthetic-only"}}`)); err != nil {
 		t.Fatal(err)
-	}
-	a.services.openFile = func(context.Context, runtime.OpenDialogOptions) (string, error) { return path, nil }
-	if err := a.ImportGoogleClient(); err != nil {
-		t.Fatal(err)
-	}
-	if ok, err := a.GoogleConfigured(); err != nil || !ok {
-		t.Fatal(ok, err)
 	}
 	job, err := a.CreateJob("Google")
 	if err != nil {
@@ -38,10 +23,6 @@ func TestGoogleDesktopImportAndCancelledLogin(t *testing.T) {
 	a.services.openBrowser = func(string) error { return nil }
 	if c, err := a.ConnectGoogle(job.ID); err == nil || c.GoogleGrant != "" {
 		t.Fatal("cancelled login succeeded")
-	}
-	a.services.openFile = func(context.Context, runtime.OpenDialogOptions) (string, error) { return "", nil }
-	if err := a.ImportGoogleClient(); err == nil {
-		t.Fatal("cancel ignored")
 	}
 	if _, err := a.ConnectGoogle("missing"); err == nil {
 		t.Fatal("missing job accepted")

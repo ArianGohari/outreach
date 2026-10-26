@@ -63,6 +63,21 @@
         ),
       "editor",
     );
+    const provider = [...document.querySelectorAll("label")]
+      .find(el => visible(el) && el.querySelector("span")?.textContent.trim() === "Send via")
+      ?.querySelector("select");
+    assert(provider, "missing provider selector");
+    provider.value = "google";
+    provider.dispatchEvent(new Event("change", {bubbles: true}));
+    await until(() => [...document.querySelectorAll("button")].some(
+      b => visible(b) && b.textContent.trim() === "Connect Google" && !b.disabled
+    ), "Google sign-in without JSON import");
+    assert(!text().includes("OAuth JSON"), "end user required to import OAuth JSON");
+    provider.value = "";
+    provider.dispatchEvent(new Event("change", {bubbles: true}));
+    await until(() => [...document.querySelectorAll("label")].some(
+      el => visible(el) && el.querySelector("span")?.textContent.trim() === "SMTP server"
+    ), "SMTP editor restored");
     input("Subject", "Hallo {{First Name}} {{Last Name}}");
     input("Text", "Hi {{First Name}} at {{Company Name}}");
     await click("Validate & preview");

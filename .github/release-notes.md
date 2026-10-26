@@ -1,3 +1,3 @@
-The window adapts to your screen and remembers its size on exit. Dashboard and contact tables use more space; message editing stays readable.
+Connect Google directly, without importing a JSON file. Existing account connections are preserved. Tabs, notices and action statuses now align with the editor.
 
-Download for macOS Apple Silicon or Windows x64. Windows requires WebView2. Builds are not publisher-signed or notarized.
+Download for macOS Apple Silicon or Windows x64. Windows requires WebView2. Builds remain unsigned; Smart App Control may block the Windows app.

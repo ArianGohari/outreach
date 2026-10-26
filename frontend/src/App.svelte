@@ -230,7 +230,7 @@
   });
 </script>
 
-<main class="workspace">
+<main class="workspace" class:editing={active !== 'overview'}>
   <JobTabs
     {jobs}
     {tabs}
@@ -396,6 +396,12 @@
     max-width: 1184px;
     padding-inline: clamp(16px, 3vw, 32px);
     padding-top: 0;
+  }
+
+  .workspace.editing > :global(.job-tabs),
+  .workspace.editing > :global(.feedback) {
+    max-width: 760px;
+    margin-inline: auto;
   }
 
   .dashboard-list {

@@ -14,7 +14,7 @@ Lokale Desktop-App: Apollo-CSV importieren, Textnachrichten mit Platzhaltern vor
 - Bestehendes CSS weiterverwenden. Falls eine CSS-Library nötig wird, ist UnoCSS die vereinbarte Option; nicht vorsorglich installieren.
 - Kein Postfachzugriff, kein Einlesen von Antworten oder Bounces, kein Tracking. Ein vorhandenes CSV-Feld zu Bounces auszuwerten ist kein Postfachzugriff.
 - SMTP nur mit TLS/STARTTLS. Keine automatische Signatur: Eine Signatur steht nur dann in der Mail, wenn sie im Template eingetragen wurde.
-- Google / Workspace nutzt OAuth und die Gmail-API (`gmail.send`, `openid`, `email`), andere Anbieter SMTP. Kein Postfach-Lesezugriff. Einrichtung in `GOOGLE.md`; OAuth-JSON nie einbetten oder committen.
+- Google / Workspace nutzt OAuth und die Gmail-API (`gmail.send`, `openid`, `email`), andere Anbieter SMTP. Kein Postfach-Lesezugriff. Einrichtung in `GOOGLE.md`. Offizielle Builds enthalten den gemeinsamen Desktop-OAuth-Client, damit Nutzer direkt „Connect Google“ wählen können. `scripts/configure-google.mjs` erzeugt die ignorierte `internal/googlemail/client_build.go` aus `GOOGLE_OAUTH_CLIENT_JSON`; die originale JSON-Datei nie committen. Nur Desktop-Client-ID und -Secret einbetten, niemals Benutzer-Tokens. Bestehende Grants behalten den zugehörigen OAuth-Client; nicht auf den neuen Build-Client umschreiben.
 - Google-Konto aus der bestätigten OAuth-Identität übernehmen. Absender muss diesem Konto entsprechen; Aliase sind vorerst nicht unterstützt. Tokens bleiben im Backend: Refresh-Zugangsdaten im OS-Schlüsselbund, Access-Tokens nur im RAM. SQLite speichert eine nicht geheime Verbindungsreferenz.
 - Gmail-Sendeanfragen niemals automatisch wiederholen, auch nicht bei HTTP 401/429/5xx. Fehlende/ungültige Erfolgsbestätigung und 5xx bleiben unklar und gesperrt. Token-Erneuerung vor dem Versand ist erlaubt und verändert keine Versandfreigabe.
 - Trennen einer Google-Verbindung mit Jobstarts serialisieren und Freigaben betroffener Jobs löschen. Laufende Jobs blockieren das Trennen. Lokales Trennen widerruft keine Freigabe bei Google.
@@ -50,6 +50,7 @@ Der vorhandene Schutz ist lokal und gilt für identischen Nachrichteninhalt. Ge�
 - Kein festes Dropdown "E-Mail-Spalte"; Apollo `Email` ist die Empfängerspalte. Die Kontaktvorschau zeigt alle importierten Spalten.
 - UI-Texte auf ihren Nutzen prüfen. Überflüssige Einleitungen entfernen; hilfreiche Hinweise kürzen. Aussagekräftige Fehler, Versandgrenzen und die Template-Anleitung erhalten.
 - Fenster beim Start an die logische Bildschirmgröße anpassen; normale Fenstergröße beim bestätigten Beenden in `meta.window_size` speichern. Maximierte/Vollbild-Größen nicht als normale Größe speichern. Dashboard und Kontakte bis 1120 px Inhaltsbreite, Formularabschnitte bis 760 px.
+- Im Job-Editor Tab-Leiste, Titel, Hinweise/Fehler und Formular-/Fortschrittsabschnitte seitlich ausrichten (max. 760 px). Nur die Kontakttabelle darf breiter sein. Inline-Status neben Buttons ohne Block-Hinweis-Margins darstellen.
 - Tastaturbedienung, Fokus, Labels und schmale Fenster erhalten. Kein Layout darf horizontal aus dem Fenster laufen; breite Tabellen dürfen intern scrollen.
 
 ## CSV und Template-Sprache

@@ -41,3 +41,6 @@ Master.csv
 .DS_Store
 Thumbs.db
 Desktop.ini
+
+# Generated public desktop OAuth client (injected into release builds)
+/internal/googlemail/client_build.go

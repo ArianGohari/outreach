@@ -5,6 +5,7 @@ Tests use synthetic contacts, temporary databases and loopback SMTP servers. No 
 ## Run
 
 ```sh
+node --test scripts/configure-google.test.mjs
 pnpm --dir frontend install --frozen-lockfile
 pnpm --dir frontend run build
 pnpm --dir frontend test
@@ -41,6 +42,7 @@ For the real Keychain / Windows Credential Manager test, set `OUTREACH_OS_TESTS=
 | Credentials, cancellation, confirmation, close while sending | Desktop unit tests; actual OS credential round trip |
 | Error details, Wails serialization, log receipts, redaction, rotation and write failures | Diagnostics, desktop, component and native tests |
 | Actual Svelte → Wails → SQLite → TLS SMTP flow | Native WKWebView / WebView2 test, including errors, retry and deletion |
+| Bundled OAuth client, fresh-install login, legacy accounts and missing build configuration | Build-script, OAuth unit/integration, desktop and UI tests |
 | Google OAuth, PKCE/state, account identity, denied consent and secret storage | Local OAuth endpoint tests and desktop/UI tests |
 | Google refresh, revoked grants, API errors, lost acknowledgement and no retries | Concurrent token tests and local Gmail API tests |
 | Google sends and deletion retain global duplicate protection | Jobs → SQLite → local Gmail API integration test |

@@ -52,6 +52,13 @@ jobs:
             throw new Error('Release tag must be vX.Y.Z and match info.productVersion in wails.json');
           }
           JS
+      - name: Test Google build configuration
+        run: node --test scripts/configure-google.test.mjs
+      - name: Configure Google desktop client
+        if: github.event_name != 'pull_request'
+        env:
+          GOOGLE_OAUTH_CLIENT_JSON: ${{ secrets.GOOGLE_OAUTH_CLIENT_JSON }}
+        run: node scripts/configure-google.mjs ${{ startsWith(github.ref, 'refs/tags/v') && '--required' || '' }}
       - run: pnpm install --frozen-lockfile
         working-directory: frontend
       - run: pnpm run build

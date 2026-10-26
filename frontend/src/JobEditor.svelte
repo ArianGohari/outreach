@@ -34,7 +34,6 @@
   let jobName = $state('');
   let view = $state<'edit' | 'progress'>('edit');
   let saveStatus = $state('');
-  let googleConfigured = $state(false);
   async function selectProvider(provider: string) {
     config = {
       ...config,
@@ -46,10 +45,6 @@
       remember: false,
     };
     invalidate(true);
-    if (provider === 'google')
-      await action(async () => {
-        googleConfigured = await desktopBackend().GoogleConfigured();
-      });
   }
   async function googleLogin() {
     await action(async () => {
@@ -115,10 +110,6 @@
     if (!source) return;
     config = { ...source.draft.request.config, password: '' };
     invalidate(true);
-    if (config.provider === 'google')
-      await action(async () => {
-        googleConfigured = await desktopBackend().GoogleConfigured();
-      });
     if (config.remember && config.provider !== 'google')
       await action(async () => {
         config.password = await backend().LoadPassword({ ...config });
@@ -372,8 +363,6 @@
       testTo = config.from || config.username;
       if (config.remember && config.provider !== 'google')
         config.password = await backend().LoadPassword({ ...config });
-      if (config.provider === 'google')
-        googleConfigured = await desktopBackend().GoogleConfigured();
       initialized = true;
     });
     const off = window.runtime?.EventsOn('outreach:changed', () => {
@@ -453,20 +442,7 @@
       >
       {#if config.provider === 'google'}
         <div class="actions">
-          <button
-            class="plain"
-            disabled={locked}
-            onclick={() =>
-              action(async () => {
-                await desktopBackend().ImportGoogleClient();
-                googleConfigured = true;
-              })}
-            >{googleConfigured
-              ? 'Change OAuth JSON'
-              : 'Select OAuth JSON'}</button
-          >
-          <button disabled={locked || !googleConfigured} onclick={googleLogin}
-            >Connect Google</button
+          <button disabled={locked} onclick={googleLogin}>Connect Google</button
           >
           {#if config.googleGrant}<button
               class="plain"
@@ -566,7 +542,7 @@
           class="plain"
           disabled={locked}
           onclick={() => action(saveDraft)}>Save draft</button
-        ><span class="hint">{saveStatus}</span>
+        ><span class="small muted" role="status">{saveStatus}</span>
       </div>
       {#if config.provider !== 'google'}<p class="hint">
           Port 465: TLS · Other ports: STARTTLS.
@@ -851,7 +827,8 @@
 
 <style>
   .job-editor > header,
-  section {
+  .job-editor > :global(.feedback),
+  .job-editor :global(section) {
     max-width: 760px;
     margin-inline: auto;
   }

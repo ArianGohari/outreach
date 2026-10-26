@@ -101,8 +101,6 @@ export interface JobView {
   state: State;
 }
 export interface Bridge {
-  GoogleConfigured(): Promise<boolean>;
-  ImportGoogleClient(): Promise<void>;
   ConnectGoogle(id: string): Promise<Config>;
   DisconnectGoogle(id: string, config: Config): Promise<void>;
   GetWorkspace(): Promise<JobView[]>;

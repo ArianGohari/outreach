@@ -48,8 +48,6 @@ beforeEach(() => {
     job('b', 'Beta', 'b@example.org'),
   ];
   api = {
-    GoogleConfigured: vi.fn().mockResolvedValue(false),
-    ImportGoogleClient: vi.fn().mockResolvedValue(undefined),
     ConnectGoogle: vi.fn(),
     DisconnectGoogle: vi.fn().mockResolvedValue(undefined),
     GetWorkspace: vi.fn(async () => structuredClone(jobs)),

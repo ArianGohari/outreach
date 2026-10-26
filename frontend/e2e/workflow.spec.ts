@@ -79,8 +79,6 @@ test.beforeEach(async ({ page }) => {
       state: state(j),
     });
     const api = {
-      GoogleConfigured: async () => true,
-      ImportGoogleClient: async () => {},
       ConnectGoogle: async () => ({
         provider: 'google',
         googleGrant: 'test-grant',
@@ -369,6 +367,7 @@ test('Google setup hides password fields and requires a new connection check', a
   await page
     .getByRole('combobox', { name: 'Send via', exact: true })
     .selectOption('google');
+  await expect(page.getByRole('button', { name: /OAuth JSON/ })).toHaveCount(0);
   await expect(page.getByLabel('SMTP server')).toHaveCount(0);
   await expect(page.getByLabel('Password', { exact: true })).toHaveCount(0);
   await page.getByRole('button', { name: 'Connect Google' }).click();
@@ -613,4 +612,60 @@ test('deleting a configured job requires confirmation and removes its tab', asyn
   await expect(page.getByRole('tab', { name: /Entfernen/ })).toHaveCount(0);
   await page.reload();
   await expect(page.getByRole('tab', { name: /Entfernen/ })).toHaveCount(0);
+});
+
+test('tabs, notices and action statuses align with the editor', async ({
+  page,
+}) => {
+  await page.getByLabel('Job name', { exact: true }).fill('Alignment');
+  await page.getByRole('button', { name: 'Save draft', exact: true }).click();
+  await expect(page.getByText('Draft saved', { exact: true })).toBeVisible();
+  await page.getByLabel('SMTP server').fill('smtp.example.org');
+  await page.getByLabel('Username', { exact: true }).fill('sender@example.org');
+  await page.getByLabel('Password', { exact: true }).fill('synthetic-only');
+  await page
+    .getByRole('button', { name: 'Check connection', exact: true })
+    .click();
+  await expect(page.getByText('Connected · TLS')).toBeVisible();
+  await page.evaluate(() => {
+    (window as any).go.main.App.ChooseCSV = async () => {
+      throw {
+        cancelled: true,
+        code: 'CANCELLED',
+        message: 'File selection cancelled',
+      };
+    };
+  });
+  await page.getByRole('button', { name: 'Choose file' }).click();
+  const notice = page
+    .getByRole('status')
+    .filter({ hasText: 'File selection cancelled' });
+  await expect(notice).toBeVisible();
+  for (const width of [640, 1000, 1440]) {
+    await page.setViewportSize({ width, height: 800 });
+    const section = await page
+      .locator('.job-editor section')
+      .first()
+      .boundingBox();
+    for (const locator of [page.locator('.job-tabs'), notice]) {
+      const box = await locator.boundingBox();
+      expect(box).not.toBeNull();
+      expect(Math.abs(box!.x - section!.x)).toBeLessThan(1);
+      expect(Math.abs(box!.width - section!.width)).toBeLessThan(1);
+    }
+    const offsets = await page
+      .locator('.job-editor .actions')
+      .evaluateAll((rows) =>
+        rows.flatMap((row) => {
+          const button = row.querySelector('button');
+          const status = row.querySelector('span');
+          if (!button || !status || !status.textContent?.trim()) return [];
+          const a = button.getBoundingClientRect(),
+            b = status.getBoundingClientRect();
+          return [Math.abs(a.y + a.height / 2 - b.y - b.height / 2)];
+        }),
+      );
+    expect(offsets.length).toBeGreaterThanOrEqual(2);
+    for (const offset of offsets) expect(offset).toBeLessThan(1);
+  }
 });

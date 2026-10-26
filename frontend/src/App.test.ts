@@ -47,8 +47,6 @@ const plan = {
 let bridge: Bridge;
 beforeEach(() => {
   bridge = {
-    GoogleConfigured: vi.fn().mockResolvedValue(false),
-    ImportGoogleClient: vi.fn().mockResolvedValue(undefined),
     ConnectGoogle: vi.fn(),
     DisconnectGoogle: vi.fn().mockResolvedValue(undefined),
     GetWorkspace: vi.fn().mockResolvedValue([]),
@@ -471,7 +469,7 @@ describe('error reporting', () => {
 });
 
 describe('Google account setup', () => {
-  it('imports a client, connects the verified account and keeps sending locked', async () => {
+  it('connects without a JSON import and keeps sending locked', async () => {
     vi.mocked(bridge.ConnectGoogle).mockResolvedValue({
       provider: 'google',
       googleGrant: 'opaque-reference',
@@ -493,15 +491,8 @@ describe('Google account setup', () => {
     const login = await screen.findByRole('button', {
       name: 'Connect Google',
     });
-    expect((login as HTMLButtonElement).disabled).toBe(true);
     expect(screen.queryByLabelText('Password')).toBeNull();
-    const importClient = screen.getByRole('button', {
-      name: 'Select OAuth JSON',
-    });
-    await waitFor(() =>
-      expect((importClient as HTMLButtonElement).disabled).toBe(false),
-    );
-    await fireEvent.click(importClient);
+    expect(screen.queryByRole('button', { name: /OAuth JSON/ })).toBeNull();
     await waitFor(() =>
       expect((login as HTMLButtonElement).disabled).toBe(false),
     );
@@ -537,7 +528,6 @@ describe('Google account setup', () => {
     );
   });
   it('shows an admin policy refusal without enabling sending', async () => {
-    vi.mocked(bridge.GoogleConfigured).mockResolvedValue(true);
     vi.mocked(bridge.ConnectGoogle).mockRejectedValue(
       new Error(
         JSON.stringify({

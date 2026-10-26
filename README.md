@@ -18,7 +18,7 @@ wails dev
 
 Read [AGENTS.md](AGENTS.md) for architecture, product decisions and sending safeguards. The current UI code is the design reference.
 
-Google Workspace without app passwords: [OAuth setup](GOOGLE.md).
+Google sign-in is ready to use in official releases. For local builds: [OAuth configuration](GOOGLE.md).
 
 ## Test and build
 

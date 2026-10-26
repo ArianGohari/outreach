@@ -33,6 +33,11 @@ type clientConfig struct {
 	ID     string `json:"client_id"`
 	Secret string `json:"client_secret"`
 }
+
+// Populated only by the generated build file. A desktop OAuth client is public;
+// user refresh/access tokens are never bundled.
+var bundledClient clientConfig
+
 type credential struct {
 	Client  clientConfig `json:"client"`
 	Email   string       `json:"email"`
@@ -45,6 +50,7 @@ type identity struct {
 	Subject  string `json:"sub"`
 }
 type Client struct {
+	client            clientConfig
 	vault             Vault
 	http              *http.Client
 	endpoint          oauth2.Endpoint
@@ -55,7 +61,7 @@ type Client struct {
 }
 
 func New(vault Vault) *Client {
-	return &Client{vault: vault, http: &http.Client{Timeout: 45 * time.Second, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }},
+	return &Client{client: bundledClient, vault: vault, http: &http.Client{Timeout: 45 * time.Second, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }},
 		endpoint: oauth2.Endpoint{AuthURL: "https://accounts.google.com/o/oauth2/v2/auth", TokenURL: "https://oauth2.googleapis.com/token", AuthStyle: oauth2.AuthStyleInParams},
 		userinfo: "https://openidconnect.googleapis.com/v1/userinfo", sendURL: "https://gmail.googleapis.com/gmail/v1/users/me/messages/send", tokens: map[string]*oauth2.Token{}}
 }
@@ -79,15 +85,20 @@ func (g *Client) ImportClient(data []byte) error {
 	if err := g.vault.Set("client", string(b)); err != nil {
 		return vaultError()
 	}
+	g.client = *file.Installed
 	return nil
 }
 func (g *Client) configured() (clientConfig, error) {
 	g.mu.Lock()
 	defer g.mu.Unlock()
+	if g.client.ID != "" && g.client.Secret != "" {
+		return g.client, nil
+	}
+	// Keep pre-update developer installations working without migrating credentials.
 	raw, err := g.vault.Get("client")
 	var c clientConfig
 	if err != nil || json.Unmarshal([]byte(raw), &c) != nil || c.ID == "" || c.Secret == "" {
-		return c, problem("GOOGLE_CLIENT_MISSING", "Google OAuth is not configured or the system keyring is locked.", "Import the OAuth JSON or unlock the system keyring.")
+		return c, problem("GOOGLE_CLIENT_MISSING", "This build has no Google sign-in configuration and no local client is available.", "Install the latest official Outreach release. For a development build, follow GOOGLE.md; unlock the system keyring if you configured a local client.")
 	}
 	return c, nil
 }
@@ -115,7 +126,7 @@ func authError(code string) error {
 	case "invalid_grant":
 		return problem("GOOGLE_RECONNECT", "Google authorization has expired or been revoked.", "Reconnect your Google account, check the connection and send a new test email. Google authorizations expire after seven days in Testing mode.")
 	case "invalid_client", "unauthorized_client":
-		return problem("GOOGLE_CLIENT", "Google rejected the OAuth client.", "Check the Desktop client JSON and Google Cloud configuration.")
+		return problem("GOOGLE_CLIENT", "Google rejected the OAuth client.", "Update Outreach and try again. If the problem continues, ask the app maintainer to check its Google Cloud OAuth configuration.")
 	default:
 		return problem("GOOGLE_AUTH", "Google could not complete sign-in or token refresh.", "Check your internet connection and Google authorization. No message was sent during this step.")
 	}

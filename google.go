@@ -3,8 +3,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"io"
-	"os"
 	"outreach/internal/diagnostics"
 	"outreach/internal/outreach"
 
@@ -19,35 +17,6 @@ func (a *App) googleReady() error {
 		return fmt.Errorf("Google sign-in is unavailable")
 	}
 	return nil
-}
-func (a *App) GoogleConfigured() (bool, error) {
-	if err := a.googleReady(); err != nil {
-		return false, a.report("Check Google setup", err)
-	}
-	return a.google.Configured(), nil
-}
-func (a *App) ImportGoogleClient() (err error) {
-	defer func() { err = a.report("Set up Google OAuth", err) }()
-	if err = a.googleReady(); err != nil {
-		return err
-	}
-	path, err := a.desktop().openFile(a.ctx, runtime.OpenDialogOptions{Title: "Select Google Desktop OAuth JSON", Filters: []runtime.FileFilter{{DisplayName: "OAuth-JSON", Pattern: "*.json"}}})
-	if err != nil {
-		return err
-	}
-	if path == "" {
-		return diagnostics.Cancelled("File selection cancelled")
-	}
-	f, err := os.Open(path)
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-	data, err := io.ReadAll(io.LimitReader(f, 65537))
-	if err != nil {
-		return err
-	}
-	return a.google.ImportClient(data)
 }
 func (a *App) ConnectGoogle(id string) (config outreach.Config, err error) {
 	defer func() { err = a.report("Connect Google account", err) }()

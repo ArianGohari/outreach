@@ -13,6 +13,7 @@ dev:
 	$(WAILS) dev
 
 test:
+	node --test scripts/configure-google.test.mjs
 	cd frontend && pnpm run build && pnpm test
 	go test -race -tags integration ./...
 	go vet -tags integration ./...

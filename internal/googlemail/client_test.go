@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"outreach/internal/diagnostics"
 	"outreach/internal/outreach"
 	"path/filepath"
 	"strings"
@@ -207,6 +208,7 @@ func TestOAuthClientValidationAndFixedEndpoints(t *testing.T) {
 		t.Fatal("import replaced Google URL")
 	}
 	delete(f.values, "client")
+	f.g.client = clientConfig{}
 	if f.g.Configured() {
 		t.Fatal("missing client shown as configured")
 	}
@@ -388,5 +390,62 @@ func TestHTTPFailuresDoNotExposeProviderBodies(t *testing.T) {
 	err := apiError("send", 403, strings.NewReader(`{"error":{"message":"access-secret recipient@example.org","errors":[{"reason":"unknown-private-data"}]}}`))
 	if strings.Contains(err.Error(), "access-secret") || strings.Contains(err.Error(), "recipient@example.org") || strings.Contains(err.Error(), "unknown-private-data") {
 		t.Fatal("provider data leaked")
+	}
+}
+
+func TestBundledClientSignsInWithoutLocalImport(t *testing.T) {
+	f := setup(t)
+	// Simulate a fresh installation: only the build-provided client exists.
+	delete(f.values, "client")
+	c := f.login(t)
+	if len(f.values) != 1 || c.GoogleGrant == "" || f.sends.Load() != 0 {
+		t.Fatal("sign-in required setup, stored unrelated data or sent mail")
+	}
+	if _, ok := f.values["client"]; ok {
+		t.Fatal("bundled client was unnecessarily written into the keyring")
+	}
+}
+
+func TestClientUpdateKeepsExistingAccountCredentials(t *testing.T) {
+	f := setup(t)
+	c := f.login(t)
+	// A future release may use a new app client. Existing account refresh tokens
+	// must still be exchanged with the client they were originally issued to.
+	f.g.client = clientConfig{ID: "new.apps.googleusercontent.com", Secret: "new-client"}
+	f.g.tokens = map[string]*oauth2.Token{}
+	if err := f.g.Check(context.Background(), c); err != nil {
+		t.Fatal(err)
+	}
+	if f.refreshes.Load() != 1 || f.sends.Load() != 0 {
+		t.Fatal("account was not restored safely")
+	}
+}
+
+func TestBundledClientPrecedesLegacySetup(t *testing.T) {
+	f := setup(t)
+	f.values["client"] = `{"client_id":"old.apps.googleusercontent.com","client_secret":"old"}`
+	f.login(t) // The local token endpoint rejects any client other than the bundled fixture.
+}
+
+func TestDeveloperBuildUsesLegacySetup(t *testing.T) {
+	f := setup(t)
+	f.g.client = clientConfig{}
+	f.login(t)
+}
+
+func TestConstructorUsesBuildClientWithoutOpeningKeyring(t *testing.T) {
+	g := New(Vault{Get: func(string) (string, error) { t.Fatal("constructor read keyring"); return "", nil }})
+	if g.client != bundledClient {
+		t.Fatal("constructor discarded bundled client")
+	}
+}
+
+func TestMissingClientFailsBeforeOpeningBrowser(t *testing.T) {
+	g := New(Vault{Get: func(string) (string, error) { return "", errors.New("unavailable") }})
+	g.client = clientConfig{}
+	_, err := g.Login(context.Background(), func(string) error { t.Fatal("opened browser without a client"); return nil })
+	var p *diagnostics.Fault
+	if !errors.As(err, &p) || p.Code != "GOOGLE_CLIENT_MISSING" {
+		t.Fatal("missing client not explained", err)
 	}
 }
