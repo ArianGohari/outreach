@@ -1,0 +1,5 @@
+First Name,Last Name,Title,Company Name,Email,Contact Owner,Person Linkedin Url,City
+Lena,Beispiel,Head of Sales,"Beispiel, GmbH",lena@example.com,owner@example.org,https://www.linkedin.com/in/lena-beispiel,Berlin
+Jonas,Muster,,,jonas@example.com,owner@example.org,https://www.linkedin.com/in/jonas-muster,Hamburg
+Sophie,Test,"Leitung
+Vertrieb",Testfirma,sophie@example.com,owner@example.org,https://www.linkedin.com/in/sophie-test,München

@@ -1,0 +1,118 @@
+name: Tests, builds and releases
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  desktop:
+    name: Desktop (${{ matrix.artifact }})
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-15
+            platform: darwin/arm64
+            artifact: macos-arm64
+          - os: windows-2025
+            platform: windows/amd64
+            artifact: windows-x64
+    runs-on: ${{ matrix.os }}
+    env:
+      CGO_ENABLED: '1'
+      CGO_CFLAGS: ${{ matrix.artifact == 'macos-arm64' && '-mmacosx-version-min=13.0' || '' }}
+      CGO_LDFLAGS: ${{ matrix.artifact == 'macos-arm64' && '-mmacosx-version-min=13.0' || '' }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+          cache-dependency-path: go.sum
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Check release version
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: bash
+        run: |
+          node --input-type=module <<'JS'
+          import { readFileSync } from 'node:fs';
+          const tag = process.env.GITHUB_REF_NAME;
+          const version = JSON.parse(readFileSync('wails.json', 'utf8')).info.productVersion;
+          if (!/^v\d+\.\d+\.\d+$/.test(tag) || tag !== `v${version}`) {
+            throw new Error('Release tag must be vX.Y.Z and match info.productVersion in wails.json');
+          }
+          JS
+      - run: npm ci
+        working-directory: frontend
+      - run: npm run build
+        working-directory: frontend
+      - run: npm test
+        working-directory: frontend
+      - run: npx playwright install chromium webkit
+        working-directory: frontend
+      - run: npm run test:e2e
+        working-directory: frontend
+      - run: go test -race ./...
+      - run: go vet ./...
+      - run: go install github.com/wailsapp/wails/v2/cmd/wails@v2.17.0
+      - run: wails build -platform ${{ matrix.platform }}
+      - name: Package macOS app
+        if: runner.os == 'macOS'
+        run: |
+          mkdir -p release
+          ditto -c -k --sequesterRsrc --keepParent build/bin/Outreach.app release/Outreach-macos-arm64.zip
+      - name: Package Windows app
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force release | Out-Null
+          Compress-Archive -Path build/bin/Outreach.exe -DestinationPath release/Outreach-windows-x64.zip
+      - uses: actions/upload-artifact@v6
+        with:
+          name: Outreach-${{ matrix.artifact }}
+          path: release/*.zip
+          if-no-files-found: error
+          retention-days: 14
+
+  release:
+    name: Publish GitHub release
+    needs: desktop
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@v7
+        with:
+          pattern: Outreach-*
+          path: release
+          merge-multiple: true
+      - name: Verify assets and create checksums
+        working-directory: release
+        run: |
+          test -s Outreach-macos-arm64.zip
+          test -s Outreach-windows-x64.zip
+          sha256sum Outreach-macos-arm64.zip Outreach-windows-x64.zip > SHA256SUMS.txt
+      - name: Publish release with both downloads
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          gh release create "$RELEASE_TAG" \
+            release/Outreach-macos-arm64.zip \
+            release/Outreach-windows-x64.zip \
+            release/SHA256SUMS.txt \
+            --verify-tag --title "Outreach $RELEASE_TAG" \
+            --generate-notes --notes-file .github/release-notes.md
