@@ -8,6 +8,8 @@ Outreach requests `gmail.send`, `openid` and `email`. It cannot read your mailbo
 
 **Remove Google connection** removes local access and clears affected sending approvals. Stop running jobs first. To revoke Google consent too, remove Outreach from your Google Account’s connections.
 
+Google messages include matching text and HTML versions so Workspace can append a [formatted organization footer](https://knowledge.workspace.google.com/admin/gmail/advanced/add-a-standard-footer-to-outgoing-emails). Outreach does not fetch account signatures. Provider footers appear in the received test email, not the local preview.
+
 ## Build configuration
 
 1. Enable **Gmail API** in Google Cloud and configure Google Auth Platform. In **External / Testing**, add each sender as a test user.

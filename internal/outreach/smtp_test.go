@@ -198,6 +198,9 @@ func TestSMTPRealTLSAndMIME(t *testing.T) {
 	if e != nil {
 		t.Fatal(e)
 	}
+	if parsed.Header.Get("Content-Type") != "text/plain; charset=UTF-8" {
+		t.Fatal("SMTP text format changed")
+	}
 	subject, e := new(mime.WordDecoder).DecodeHeader(parsed.Header.Get("Subject"))
 	if e != nil || subject != m.Subject {
 		t.Fatal("subject encoding changed", subject, e)

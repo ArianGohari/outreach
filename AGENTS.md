@@ -13,7 +13,7 @@ Lokale Desktop-App: Apollo-CSV importieren, Textnachrichten mit Platzhaltern vor
 - Geist lokal aus `frontend/public/fonts` laden; Lizenz mitliefern. Farben und Typografie zentral in `frontend/src/style.css`, Markenassets in `frontend/public/brand`. Icons mit `pnpm --dir frontend brand:build` aus SVG erzeugen.
 - Bestehendes CSS weiterverwenden. Falls eine CSS-Library nötig wird, ist UnoCSS die vereinbarte Option; nicht vorsorglich installieren.
 - Kein Postfachzugriff, kein Einlesen von Antworten oder Bounces, kein Tracking. Ein vorhandenes CSV-Feld zu Bounces auszuwerten ist kein Postfachzugriff.
-- SMTP nur mit TLS/STARTTLS. Keine automatische Signatur: Eine Signatur steht nur dann in der Mail, wenn sie im Template eingetragen wurde.
+- SMTP nur mit TLS/STARTTLS. Die App fügt keine automatische Signatur hinzu. Signaturen im Template bleiben möglich; Mailanbieter können unabhängig davon zentrale Footer anhängen.
 - Google / Workspace nutzt OAuth und die Gmail-API (`gmail.send`, `openid`, `email`), andere Anbieter SMTP. Kein Postfach-Lesezugriff. Einrichtung in `GOOGLE.md`. Offizielle Builds enthalten den gemeinsamen Desktop-OAuth-Client, damit Nutzer direkt „Connect Google“ wählen können. `scripts/configure-google.mjs` erzeugt die ignorierte `internal/googlemail/client_build.go` aus `GOOGLE_OAUTH_CLIENT_JSON`; die originale JSON-Datei nie committen. Nur Desktop-Client-ID und -Secret einbetten, niemals Benutzer-Tokens. Bestehende Grants behalten den zugehörigen OAuth-Client; nicht auf den neuen Build-Client umschreiben.
 - Google-Konto aus der bestätigten OAuth-Identität übernehmen. Absender muss diesem Konto entsprechen; Aliase sind vorerst nicht unterstützt. Tokens bleiben im Backend: Refresh-Zugangsdaten im OS-Schlüsselbund, Access-Tokens nur im RAM. SQLite speichert eine nicht geheime Verbindungsreferenz.
 - Gmail-Sendeanfragen niemals automatisch wiederholen, auch nicht bei HTTP 401/429/5xx. Fehlende/ungültige Erfolgsbestätigung und 5xx bleiben unklar und gesperrt. Token-Erneuerung vor dem Versand ist erlaubt und verändert keine Versandfreigabe.
@@ -70,7 +70,7 @@ First Name,Last Name,Title,Company Name,Email,Contact Owner,Person Linkedin Url,
 - Leere Werte ohne Ersatz blockieren Versand. Eine fehlende Spalte bleibt auch mit Ersatzwert ungültig. Keine Schleifen oder Bedingungen hinzufügen, ohne den Umfang abzustimmen.
 - Alle verfügbaren Tags in der aufklappbaren Anleitung auflisten, einschließlich zusätzlicher importierter Spalten.
 - Vorschau ohne CSV und SMTP muss mit Jane Doe funktionieren. Betreff und Text müssen trotzdem gültig sein. Beispieldaten deutlich kennzeichnen und vom Versand ausschließen.
-- Plain Text; HTML und Markdown werden nicht als Formatierung gerendert. Betreff ohne Zeilenumbrüche.
+- Templates bleiben Plain Text; eingegebenes HTML und Markdown werden nicht als Formatierung gerendert. Betreff ohne Zeilenumbrüche. Google-Versand enthält zusätzlich eine vollständig maskierte HTML-Version desselben Textes (`multipart/alternative`), damit Workspace-Footer Bilder und Formatierung behalten können. Keine Signatur abrufen oder selbst ergänzen; keine zusätzlichen OAuth-Scopes. SMTP bleibt `text/plain`. Nachrichtenschlüssel und Duplikatsperren dürfen sich durch MIME-Format oder zufällige MIME-Grenzen nicht ändern. Provider-Footer erscheinen erst in der empfangenen Testmail, nicht in der lokalen Vorschau.
 
 ## Fehler und vertrauliche Daten
 

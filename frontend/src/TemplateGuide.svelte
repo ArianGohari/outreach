@@ -96,8 +96,9 @@
       the test email in your inbox.
     </p>
     <p>
-      Plain text only: no HTML, Markdown, conditions, loops or nested tags. Add
-      a signature yourself if needed. No line breaks in the subject.
+      Templates use plain text. HTML and Markdown stay literal. No conditions,
+      loops, nested tags or subject line breaks. Providers may append a footer;
+      check the test email.
     </p>
   </div>
 </details>

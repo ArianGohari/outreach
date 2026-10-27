@@ -48,6 +48,7 @@ For the real Keychain / Windows Credential Manager test, set `OUTREACH_OS_TESTS=
 | Bundled OAuth client, fresh-install login, legacy accounts and missing build configuration | Build-script, OAuth unit/integration, desktop and UI tests |
 | Google OAuth, PKCE/state, account identity, denied consent and secret storage | Local OAuth endpoint tests and desktop/UI tests |
 | Google refresh, revoked grants, API errors, lost acknowledgement and no retries | Concurrent token tests and local Gmail API tests |
+| Google text/HTML alternatives, literal markup, Unicode, line breaks and recipient/header preservation | MIME unit tests and decoded requests to the local Gmail API fixture; SMTP stays text-only |
 | Google sends and deletion retain global duplicate protection | Jobs → SQLite → local Gmail API integration test |
 
 The native test builds a separate executable with `integration,nativee2e` tags and the race detector. It uses the production window options and bindings. File-picker and confirmation results are scripted; the WebView, bridge, file reads, validation, database, worker and SMTP transport are real. Test hooks and the SMTP fixture are excluded from release builds.
@@ -67,4 +68,4 @@ These still require manual testing of a downloaded build on a clean macOS ARM ma
 
 Do not mark these checks as passed from a green CI run. Never use a real contact list or delete the user's database for testing.
 
-Google's actual consent screen, Workspace policy and production delivery need separate verification. The opt-in `google-check` command in [GOOGLE.md](GOOGLE.md) checks real authorization without sending mail; automated suites never contact Google.
+Google's actual consent screen, Workspace policy and production delivery need separate verification. For organization footers, the user must check an explicitly requested test email: banner, formatting, text and line breaks. Local MIME tests verify what Outreach submits, not what Google appends or the receiving mail client displays. The opt-in `google-check` command in [GOOGLE.md](GOOGLE.md) checks real authorization without sending mail; automated suites never contact Google.

@@ -7,11 +7,15 @@ import (
 	"crypto/tls"
 	"encoding/hex"
 	"fmt"
+	"html"
+	"io"
 	"mime"
+	"mime/multipart"
 	"mime/quotedprintable"
 	"net"
 	"net/mail"
 	"net/smtp"
+	"net/textproto"
 	"outreach/internal/diagnostics"
 	"strings"
 	"time"
@@ -129,16 +133,56 @@ func MIME(c Config, m Message) ([]byte, error) {
 	if c.ReplyTo != "" {
 		fmt.Fprintf(&b, "Reply-To: %s\r\n", (&mail.Address{Address: c.ReplyTo}).String())
 	}
-	fmt.Fprintf(&b, "Date: %s\r\nMessage-ID: %s\r\nMIME-Version: 1.0\r\nContent-Type: text/plain; charset=UTF-8\r\nContent-Transfer-Encoding: quoted-printable\r\n\r\n", time.Now().Format(time.RFC1123Z), m.MessageID)
-	q := quotedprintable.NewWriter(&b)
-	if _, e := q.Write([]byte(m.Body)); e != nil {
-		return nil, e
-	}
-	if e := q.Close(); e != nil {
-		return nil, e
+	fmt.Fprintf(&b, "Date: %s\r\nMessage-ID: %s\r\nMIME-Version: 1.0\r\n", time.Now().Format(time.RFC1123Z), m.MessageID)
+	if c.Provider == "google" {
+		if err := writeGoogleAlternatives(&b, m.Body); err != nil {
+			return nil, err
+		}
+	} else {
+		b.WriteString("Content-Type: text/plain; charset=UTF-8\r\nContent-Transfer-Encoding: quoted-printable\r\n\r\n")
+		if err := writeQuotedPrintable(&b, m.Body); err != nil {
+			return nil, err
+		}
 	}
 	return b.Bytes(), nil
 }
+
+// Workspace appends a text-only footer to text-only messages. Supply the same
+// rendered message as HTML so its centrally managed footer can retain images.
+// Never interpret template or CSV content as HTML, or change its stored identity.
+func writeGoogleAlternatives(w io.Writer, body string) error {
+	parts := multipart.NewWriter(w)
+	if _, err := fmt.Fprintf(w, "Content-Type: multipart/alternative; boundary=%q\r\n\r\n", parts.Boundary()); err != nil {
+		return err
+	}
+	text := strings.ReplaceAll(strings.ReplaceAll(body, "\r\n", "\n"), "\r", "\n")
+	htmlBody := "<!DOCTYPE html><html><body><div style=\"white-space:pre-wrap\">" +
+		strings.ReplaceAll(html.EscapeString(text), "\n", "<br>") + "</div></body></html>"
+	for _, content := range []struct{ mediaType, body string }{
+		{"text/plain", body}, {"text/html", htmlBody},
+	} {
+		part, err := parts.CreatePart(textproto.MIMEHeader{
+			"Content-Type":              {content.mediaType + "; charset=UTF-8"},
+			"Content-Transfer-Encoding": {"quoted-printable"},
+		})
+		if err != nil {
+			return err
+		}
+		if err := writeQuotedPrintable(part, content.body); err != nil {
+			return err
+		}
+	}
+	return parts.Close()
+}
+
+func writeQuotedPrintable(w io.Writer, body string) error {
+	q := quotedprintable.NewWriter(w)
+	if _, err := q.Write([]byte(body)); err != nil {
+		return err
+	}
+	return q.Close()
+}
+
 func (sender SMTPSender) Send(ctx context.Context, c Config, m Message) SendResult {
 	data, e := MIME(c, m)
 	if e != nil {

@@ -1,14 +1,19 @@
 package googlemail
 
 import (
+	"bytes"
 	"context"
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
+	"mime"
+	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
+	"net/mail"
 	"net/url"
 	"outreach/internal/diagnostics"
 	"outreach/internal/outreach"
@@ -25,18 +30,19 @@ import (
 const testClient = `{"installed":{"client_id":"test.apps.googleusercontent.com","client_secret":"client-secret","auth_uri":"https://untrusted.example.org","token_uri":"https://untrusted.example.org"}}`
 
 type fixture struct {
-	g          *Client
-	values     map[string]string
-	sends      atomic.Int32
-	refreshes  atomic.Int32
-	challenge  string
-	sendStatus int
-	sendBody   string
-	tokenError string
-	scope      string
-	email      string
-	verified   bool
-	drop       atomic.Bool
+	g           *Client
+	values      map[string]string
+	sends       atomic.Int32
+	refreshes   atomic.Int32
+	challenge   string
+	sendStatus  int
+	sendBody    string
+	tokenError  string
+	scope       string
+	email       string
+	verified    bool
+	lastMessage atomic.Value
+	drop        atomic.Bool
 }
 
 func setup(t *testing.T) *fixture {
@@ -96,9 +102,10 @@ func setup(t *testing.T) *fixture {
 				t.Error("bad API body")
 			}
 			data, err := base64.RawURLEncoding.DecodeString(payload.Raw)
-			if err != nil || !strings.Contains(string(data), "Content-Type: text/plain") || strings.Contains(string(data), "{{") {
+			if err != nil || !strings.Contains(string(data), "Content-Type: multipart/alternative") || !strings.Contains(string(data), "Content-Type: text/plain") || !strings.Contains(string(data), "Content-Type: text/html") || strings.Contains(string(data), "{{") {
 				t.Error("bad MIME")
 			}
+			f.lastMessage.Store(data)
 			if f.drop.Load() {
 				conn, _, _ := w.(http.Hijacker).Hijack()
 				conn.Close()
@@ -447,5 +454,44 @@ func TestMissingClientFailsBeforeOpeningBrowser(t *testing.T) {
 	var p *diagnostics.Fault
 	if !errors.As(err, &p) || p.Code != "GOOGLE_CLIENT_MISSING" {
 		t.Fatal("missing client not explained", err)
+	}
+}
+
+func TestGoogleAPISendsTextAndHTMLWithoutAddingASignature(t *testing.T) {
+	f := setup(t)
+	c := f.login(t)
+	m := outreach.Message{To: "recipient@example.org", Subject: "Hello", Body: "Hi Jane & <Team>,\n\nRegards\n", MessageID: "<alternatives@outreach.local>"}
+	result := f.g.Send(context.Background(), c, m)
+	if result.Status != "sent" || f.sends.Load() != 1 {
+		t.Fatal("send failed or repeated", result)
+	}
+	message, err := mail.ReadMessage(bytes.NewReader(f.lastMessage.Load().([]byte)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	mediaType, params, err := mime.ParseMediaType(message.Header.Get("Content-Type"))
+	if err != nil || mediaType != "multipart/alternative" {
+		t.Fatal("API received no HTML alternative")
+	}
+	reader := multipart.NewReader(message.Body, params["boundary"])
+	for _, want := range []struct{ kind, body string }{
+		{"text/plain", "Hi Jane & <Team>,\r\n\r\nRegards\r\n"},
+		{"text/html", "<!DOCTYPE html><html><body><div style=\"white-space:pre-wrap\">Hi Jane &amp; &lt;Team&gt;,<br><br>Regards<br></div></body></html>"},
+	} {
+		part, err := reader.NextPart()
+		if err != nil {
+			t.Fatal(err)
+		}
+		kind, _, err := mime.ParseMediaType(part.Header.Get("Content-Type"))
+		if err != nil || kind != want.kind {
+			t.Fatal("wrong alternative")
+		}
+		body, err := io.ReadAll(part)
+		if err != nil || string(body) != want.body {
+			t.Fatalf("API message content changed: %q", body)
+		}
+	}
+	if _, err := reader.NextPart(); err != io.EOF {
+		t.Fatal("invalid final boundary or extra content", err)
 	}
 }
